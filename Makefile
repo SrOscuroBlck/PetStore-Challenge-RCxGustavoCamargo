@@ -11,6 +11,7 @@ GQLGEN_VERSION ?= latest
 SQLC_VERSION ?= latest
 ATLAS_VERSION ?= latest
 GOIMPORTS_VERSION ?= latest
+GOLANGCI_VERSION ?= v2.12.2
 
 .PHONY: help
 help: ## Show this help
@@ -25,7 +26,7 @@ tools: $(LOCALBIN) ## Install developer tooling into ./bin
 	$(GO) install github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION)
 	$(GO) install ariga.io/atlas/cmd/atlas@$(ATLAS_VERSION)
 	$(GO) install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(LOCALBIN)
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(LOCALBIN) $(GOLANGCI_VERSION)
 
 .PHONY: generate
 generate: ## Run code generation (sqlc, gqlgen) once configured
