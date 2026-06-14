@@ -33,6 +33,22 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full picture.
 
 ---
 
+## Development
+
+Requires Go 1.24+ and `make`.
+
+```bash
+make tools                 # install gqlgen, sqlc, atlas, goimports, golangci-lint into ./bin
+make check                 # format check, go vet, golangci-lint, build, race tests
+HTTP_ADDR=:8443 make run   # run the server; GET /healthz returns {"status":"ok"}
+```
+
+Configuration is read from environment variables and validated at startup — a missing
+required value aborts with an error naming it. See [`.env.example`](.env.example) for the
+variables currently in use (more are added as features that need them land).
+
+---
+
 ## Documentation
 
 | Document | What's inside |
