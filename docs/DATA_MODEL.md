@@ -37,7 +37,7 @@ erDiagram
         uuid          store_id FK
         text          name
         pet_species   species "CAT | DOG | FROG"
-        int           age_years
+        integer       age_years
         text          description
         bytea         breeder_name_encrypted "AES-256-GCM"
         bytea         breeder_email_encrypted "AES-256-GCM"

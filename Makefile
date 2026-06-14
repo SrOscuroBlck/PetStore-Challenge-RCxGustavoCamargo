@@ -24,7 +24,7 @@ $(LOCALBIN):
 tools: $(LOCALBIN) ## Install developer tooling into ./bin
 	$(GO) install github.com/99designs/gqlgen@$(GQLGEN_VERSION)
 	$(GO) install github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION)
-	$(GO) install ariga.io/atlas/cmd/atlas@$(ATLAS_VERSION)
+	@curl -fsSL "https://release.ariga.io/atlas/atlas-community-$$(go env GOOS)-$$(go env GOARCH)-$(ATLAS_VERSION)" -o $(LOCALBIN)/atlas && chmod +x $(LOCALBIN)/atlas
 	$(GO) install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(LOCALBIN) $(GOLANGCI_VERSION)
 
@@ -75,7 +75,7 @@ dev: ## Start local dependencies (Postgres, Redis, MinIO)
 
 .PHONY: migrate-new
 migrate-new: ## Generate a new versioned migration (name=...)
-	@if [ -f atlas.hcl ]; then atlas migrate diff $(name) --env local; else echo "atlas.hcl not present yet — added in the data-layer milestone"; fi
+	@if [ -f atlas.hcl ]; then atlas migrate diff $(name) --env local --to "file://db/schema/schema.sql"; else echo "atlas.hcl not present yet — added in the data-layer milestone"; fi
 
 .PHONY: migrate-up
 migrate-up: ## Apply pending migrations
