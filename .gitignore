@@ -1,0 +1,28 @@
+# Private operating context (not shared)
+CLAUDE.md
+
+# Binaries & build output
+/bin/
+/dist/
+*.exe
+*.out
+*.test
+
+# Local tooling installed by `make tools`
+/.tools/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+!deploy/**/*.crt
+
+# Test & coverage
+coverage.out
+coverage.html
+
+# OS
+.DS_Store
