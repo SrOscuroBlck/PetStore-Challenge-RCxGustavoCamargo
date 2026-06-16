@@ -78,7 +78,9 @@ func NewBlindIndex(key []byte) (*BlindIndex, error) {
 	if len(key) < KeySize {
 		return nil, fmt.Errorf("blind index key must be at least %d bytes, got %d", KeySize, len(key))
 	}
-	return &BlindIndex{key: key}, nil
+	owned := make([]byte, len(key))
+	copy(owned, key)
+	return &BlindIndex{key: owned}, nil
 }
 
 // Compute returns the HMAC-SHA256 of the value after normalising it (trim + lowercase).
