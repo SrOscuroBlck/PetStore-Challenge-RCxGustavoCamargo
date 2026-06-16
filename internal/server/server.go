@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"roboticCrewChallenge/internal/auth"
 	"roboticCrewChallenge/internal/config"
 )
 
@@ -17,9 +18,16 @@ type Server struct {
 	logger     *slog.Logger
 }
 
-func New(cfg config.Config, logger *slog.Logger) *Server {
+func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticator) *Server {
+	if authenticator == nil {
+		panic("server: authenticator is required")
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handleHealth)
+
+	requireAuth := auth.BasicAuth(authenticator)
+	mux.Handle("/graphql", requireAuth(http.HandlerFunc(handleGraphQLNotImplemented)))
 
 	httpServer := &http.Server{
 		Addr:              cfg.HTTPAddr,

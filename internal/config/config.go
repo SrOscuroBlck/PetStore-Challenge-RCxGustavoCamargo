@@ -1,16 +1,21 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net"
 	"os"
 	"strings"
+
+	"roboticCrewChallenge/internal/platform/crypto"
 )
 
 type Config struct {
-	HTTPAddr string
-	LogLevel slog.Level
+	HTTPAddr         string
+	LogLevel         slog.Level
+	DatabaseURL      string
+	PIIEncryptionKey []byte
 }
 
 type MissingConfigError struct {
@@ -49,10 +54,45 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	databaseURL, err := requireEnv("DATABASE_URL")
+	if err != nil {
+		return Config{}, err
+	}
+
+	piiKey, err := loadEncryptionKey("PII_ENCRYPTION_KEY")
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
-		HTTPAddr: httpAddr,
-		LogLevel: logLevel,
+		HTTPAddr:         httpAddr,
+		LogLevel:         logLevel,
+		DatabaseURL:      databaseURL,
+		PIIEncryptionKey: piiKey,
 	}, nil
+}
+
+func loadEncryptionKey(key string) ([]byte, error) {
+	encoded, err := requireEnv(key)
+	if err != nil {
+		return nil, err
+	}
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, &InvalidConfigError{
+			Key:   key,
+			Value: "<redacted>",
+			Hint:  "expected base64-encoded 32-byte key",
+		}
+	}
+	if len(decoded) != crypto.KeySize {
+		return nil, &InvalidConfigError{
+			Key:   key,
+			Value: "<redacted>",
+			Hint:  fmt.Sprintf("expected %d bytes after base64 decode, got %d", crypto.KeySize, len(decoded)),
+		}
+	}
+	return decoded, nil
 }
 
 func requireEnv(key string) (string, error) {
