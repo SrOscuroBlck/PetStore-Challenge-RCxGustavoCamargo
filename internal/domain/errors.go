@@ -26,6 +26,9 @@ var (
 	ErrMerchantNotFound   = errors.New("merchant not found")
 	ErrCustomerNotFound   = errors.New("customer not found")
 	ErrEmailInUse         = errors.New("email already in use")
+
+	ErrUnsupportedPictureType = errors.New("unsupported picture content type")
+	ErrPictureTooLarge        = errors.New("picture exceeds the maximum allowed size")
 )
 
 type UnavailablePet struct {

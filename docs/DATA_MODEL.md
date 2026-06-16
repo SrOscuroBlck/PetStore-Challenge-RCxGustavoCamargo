@@ -123,6 +123,8 @@ Keyset pagination orders by `(created_at, id)` (or `(sold_at, id)` for the sold 
 
 The encryption key and HMAC key come from configuration/secrets, never the codebase. Mechanism details are in [`SECURITY.md`](SECURITY.md#3-encryption).
 
+Pet picture bytes are never stored in Postgres: `pets.picture_object_key` holds only the MinIO object key (`pets/<uuid>`). The image is uploaded to MinIO after content-type and size validation and served via short-lived presigned URLs ([ADR-0005](adr/0005-image-storage-minio.md)).
+
 ---
 
 ## 8. Invariants enforced at the database
