@@ -1,6 +1,6 @@
 # 0001 — Backend stack
 
-- Status: Accepted
+- Status: Accepted (Go-version choice superseded by [0006](0006-go-version-policy.md))
 - Date: 2026-06-13
 
 ## Context
