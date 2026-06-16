@@ -51,8 +51,9 @@ make migrate-up        # apply the database schema
 make run               # run the server; GET /healthz returns {"status":"ok"}
 ```
 
-`make run` connects to Postgres and reads `PII_ENCRYPTION_KEY`, so it needs `make dev`
-and a populated `.env`. Generate the key once with `openssl rand -base64 32`. The GraphQL
+`make run` connects to Postgres and MinIO and reads `PII_ENCRYPTION_KEY` and the `MINIO_*`
+vars, so it needs `make dev` and a populated `.env`. Generate the key once with
+`openssl rand -base64 32`; the MinIO bucket is created automatically at startup. The GraphQL
 endpoint is mounted at `/graphql` behind HTTP Basic auth (it returns 501 until the API
 lands); requests without valid credentials get 401.
 

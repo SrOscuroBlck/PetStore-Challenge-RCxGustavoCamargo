@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"roboticCrewChallenge/internal/adapter/objectstore"
 	"roboticCrewChallenge/internal/adapter/postgres"
 	"roboticCrewChallenge/internal/auth"
 	"roboticCrewChallenge/internal/config"
@@ -38,6 +39,14 @@ func run() error {
 		return err
 	}
 	defer pool.Close()
+
+	pictureStore, err := objectstore.New(cfg.MinIOEndpoint, cfg.MinIOAccessKey, cfg.MinIOSecretKey, cfg.MinIOBucket, cfg.MinIOUseSSL)
+	if err != nil {
+		return err
+	}
+	if err := pictureStore.EnsureBucket(ctx); err != nil {
+		return err
+	}
 
 	encryptor, err := crypto.NewEncryptor(cfg.PIIEncryptionKey)
 	if err != nil {

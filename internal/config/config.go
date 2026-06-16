@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"roboticCrewChallenge/internal/platform/crypto"
@@ -16,6 +17,11 @@ type Config struct {
 	LogLevel         slog.Level
 	DatabaseURL      string
 	PIIEncryptionKey []byte
+	MinIOEndpoint    string
+	MinIOAccessKey   string
+	MinIOSecretKey   string
+	MinIOBucket      string
+	MinIOUseSSL      bool
 }
 
 type MissingConfigError struct {
@@ -64,12 +70,61 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	minioEndpoint, err := requireEnv("MINIO_ENDPOINT")
+	if err != nil {
+		return Config{}, err
+	}
+	if strings.Contains(minioEndpoint, "://") {
+		return Config{}, &InvalidConfigError{
+			Key:   "MINIO_ENDPOINT",
+			Value: minioEndpoint,
+			Hint:  "expected host:port without a scheme; control TLS via MINIO_USE_SSL",
+		}
+	}
+	minioAccessKey, err := requireEnv("MINIO_ACCESS_KEY")
+	if err != nil {
+		return Config{}, err
+	}
+	minioSecretKey, err := requireEnv("MINIO_SECRET_KEY")
+	if err != nil {
+		return Config{}, err
+	}
+	minioBucket, err := requireEnv("MINIO_BUCKET")
+	if err != nil {
+		return Config{}, err
+	}
+	minioUseSSL, err := parseBool("MINIO_USE_SSL", false)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		HTTPAddr:         httpAddr,
 		LogLevel:         logLevel,
 		DatabaseURL:      databaseURL,
 		PIIEncryptionKey: piiKey,
+		MinIOEndpoint:    minioEndpoint,
+		MinIOAccessKey:   minioAccessKey,
+		MinIOSecretKey:   minioSecretKey,
+		MinIOBucket:      minioBucket,
+		MinIOUseSSL:      minioUseSSL,
 	}, nil
+}
+
+func parseBool(key string, fallback bool) (bool, error) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, &InvalidConfigError{
+			Key:   key,
+			Value: raw,
+			Hint:  "expected a boolean (true, false, 1, 0)",
+		}
+	}
+	return value, nil
 }
 
 func loadEncryptionKey(key string) ([]byte, error) {

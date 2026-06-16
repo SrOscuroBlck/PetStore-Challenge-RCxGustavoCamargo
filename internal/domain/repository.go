@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/google/uuid"
@@ -33,4 +34,13 @@ type CustomerRepository interface {
 	Create(ctx context.Context, customer Customer) error
 	GetByEmail(ctx context.Context, email string) (Customer, error)
 	GetByID(ctx context.Context, id uuid.UUID) (Customer, error)
+}
+
+// PictureStore persists pet pictures in object storage. Upload returns the
+// generated object key the caller records on the pet; the picture bytes never
+// touch the database. PresignedURL hands back a short-lived signed GET URL so
+// clients fetch images directly from storage rather than through a resolver.
+type PictureStore interface {
+	Upload(ctx context.Context, body io.Reader, size int64, contentType string) (objectKey string, err error)
+	PresignedURL(ctx context.Context, objectKey string) (string, error)
 }
