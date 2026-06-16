@@ -13,3 +13,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Pinned `.golangci.yml` lint configuration; CI installs and runs the pinned golangci-lint.
 - Database schema as code and Atlas versioned-migration workflow.
 - Local `docker-compose` stack (Postgres, Redis, MinIO) wired to `make dev`.
+- Pure domain model (entities, enums, typed errors) and repository interfaces.
+- Platform helpers: AES-256-GCM encryption, bcrypt hashing, HMAC blind index, keyset pagination cursor, and UUID generation.
+
+### Changed
+- Adopted the latest stable Go (1.25) and upgraded `golang.org/x/crypto` to v0.53.0 (ADR-0006).
