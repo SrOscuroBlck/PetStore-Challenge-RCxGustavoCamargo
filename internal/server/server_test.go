@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"roboticCrewChallenge/internal/auth"
 	"roboticCrewChallenge/internal/config"
 )
 
@@ -30,7 +31,7 @@ func TestHandleHealth_ReturnsOK(t *testing.T) {
 func TestServer_RunShutsDownWhenContextCancelled(t *testing.T) {
 	cfg := config.Config{HTTPAddr: "127.0.0.1:0", LogLevel: slog.LevelInfo}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv := New(cfg, logger)
+	srv := New(cfg, logger, auth.NewAuthenticator(nil, nil, nil))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)

@@ -40,16 +40,21 @@ Requires Go 1.25+ and `make`.
 ```bash
 make tools                 # install gqlgen, sqlc, atlas, goimports, golangci-lint into ./bin
 make check                 # format check, go vet, golangci-lint, build, race tests
-HTTP_ADDR=:8443 make run   # run the server; GET /healthz returns {"status":"ok"}
 ```
 
 Local dependencies and database (requires Docker):
 
 ```bash
-cp .env.example .env   # the Makefile auto-loads .env (provides DATABASE_URL, etc.)
+cp .env.example .env   # then set PII_ENCRYPTION_KEY (see below); the Makefile auto-loads .env
 make dev               # start Postgres, Redis, MinIO via docker-compose
 make migrate-up        # apply the database schema
+make run               # run the server; GET /healthz returns {"status":"ok"}
 ```
+
+`make run` connects to Postgres and reads `PII_ENCRYPTION_KEY`, so it needs `make dev`
+and a populated `.env`. Generate the key once with `openssl rand -base64 32`. The GraphQL
+endpoint is mounted at `/graphql` behind HTTP Basic auth (it returns 501 until the API
+lands); requests without valid credentials get 401.
 
 Configuration is read from environment variables and validated at startup — a missing
 required value aborts with an error naming it. See [`.env.example`](.env.example) for the
