@@ -46,8 +46,9 @@ HTTP_ADDR=:8443 make run   # run the server; GET /healthz returns {"status":"ok"
 Local dependencies and database (requires Docker):
 
 ```bash
-make dev          # start Postgres, Redis, MinIO via docker-compose
-make migrate-up   # apply the database schema (uses DATABASE_URL from .env.example)
+cp .env.example .env   # the Makefile auto-loads .env (provides DATABASE_URL, etc.)
+make dev               # start Postgres, Redis, MinIO via docker-compose
+make migrate-up        # apply the database schema
 ```
 
 Configuration is read from environment variables and validated at startup — a missing

@@ -13,6 +13,12 @@ ATLAS_VERSION ?= latest
 GOIMPORTS_VERSION ?= latest
 GOLANGCI_VERSION ?= v2.12.2
 
+# Load local environment overrides (e.g. DATABASE_URL) when a .env file is present.
+ifneq (,$(wildcard .env))
+include .env
+export
+endif
+
 .PHONY: help
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n",$$1,$$2}'
@@ -24,7 +30,7 @@ $(LOCALBIN):
 tools: $(LOCALBIN) ## Install developer tooling into ./bin
 	$(GO) install github.com/99designs/gqlgen@$(GQLGEN_VERSION)
 	$(GO) install github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION)
-	@curl -fsSL "https://release.ariga.io/atlas/atlas-community-$$(go env GOOS)-$$(go env GOARCH)-$(ATLAS_VERSION)" -o $(LOCALBIN)/atlas && chmod +x $(LOCALBIN)/atlas
+	@curl -fsSL "https://release.ariga.io/atlas/atlas-community-$$($(GO) env GOOS)-$$($(GO) env GOARCH)-$(ATLAS_VERSION)" -o $(LOCALBIN)/atlas && chmod +x $(LOCALBIN)/atlas
 	$(GO) install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(LOCALBIN) $(GOLANGCI_VERSION)
 
