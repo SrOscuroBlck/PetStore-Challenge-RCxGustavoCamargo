@@ -12,7 +12,7 @@ This repository is the **backend only** and runs entirely on your machine — no
 
 | Concern | Choice |
 |---|---|
-| Language | Go 1.24 |
+| Language | Go 1.25 |
 | API | GraphQL (`gqlgen`, schema-first) |
 | Database | PostgreSQL (`pgx/v5`) with type-safe queries via `sqlc` |
 | Schema & migrations | Atlas (versioned, linted) |
@@ -35,7 +35,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full picture.
 
 ## Development
 
-Requires Go 1.24+ and `make`.
+Requires Go 1.25+ and `make`.
 
 ```bash
 make tools                 # install gqlgen, sqlc, atlas, goimports, golangci-lint into ./bin
