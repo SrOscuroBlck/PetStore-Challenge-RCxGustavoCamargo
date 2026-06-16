@@ -13,6 +13,30 @@ import (
 	"roboticCrewChallenge/internal/domain"
 )
 
+func TestPetRepository_Checkout_DeduplicatesIDs(t *testing.T) {
+	ctx := context.Background()
+	repo := NewPetRepository(testPool, testEnc)
+	storeID := seedStore(t)
+	pet := newPet(t, storeID)
+	mustCreate(t, repo, pet)
+
+	// Same pet listed twice in the cart must resolve to a single purchase.
+	purchased, err := repo.Checkout(ctx, seedCustomer(t), []uuid.UUID{pet.ID, pet.ID})
+	if err != nil {
+		t.Fatalf("checkout with duplicate ids should succeed, got %v", err)
+	}
+	if len(purchased) != 1 {
+		t.Fatalf("want 1 purchased pet, got %d", len(purchased))
+	}
+	got, err := repo.GetByID(ctx, storeID, pet.ID)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.Status != domain.PetStatusSold {
+		t.Fatalf("want SOLD, got %s", got.Status)
+	}
+}
+
 func TestPetRepository_ListSold_ByRange(t *testing.T) {
 	ctx := context.Background()
 	repo := NewPetRepository(testPool, testEnc)

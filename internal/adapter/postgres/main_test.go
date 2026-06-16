@@ -49,8 +49,13 @@ func run(m *testing.M) int {
 		),
 	)
 	if err != nil {
-		// Docker is typically unavailable here — skip rather than fail the whole suite.
-		fmt.Fprintln(os.Stderr, "skipping postgres integration tests:", err)
+		// In CI a failure to start the container is a real failure (a false-green run would
+		// hide untested repositories). Locally, where Docker may be absent, skip instead.
+		if os.Getenv("CI") != "" {
+			fmt.Fprintln(os.Stderr, "postgres integration tests failed to start in CI:", err)
+			return 1
+		}
+		fmt.Fprintln(os.Stderr, "skipping postgres integration tests (Docker unavailable):", err)
 		return 0
 	}
 	defer func() { _ = container.Terminate(ctx) }()

@@ -106,6 +106,8 @@ func (r *PetRepository) purchaseFailure(ctx context.Context, customerID, petID u
 }
 
 func (r *PetRepository) Checkout(ctx context.Context, customerID uuid.UUID, petIDs []uuid.UUID) ([]domain.Pet, error) {
+	petIDs = dedupeIDs(petIDs)
+
 	var purchased []domain.Pet
 	err := runInTx(ctx, r.pool, func(q *sqlcgen.Queries) error {
 		locked, err := q.LockPetsByIDs(ctx, petIDs)
@@ -265,6 +267,21 @@ func soldToSameCustomer(pet domain.Pet, customerID uuid.UUID) bool {
 	return pet.Status == domain.PetStatusSold &&
 		pet.SoldByCustomerID != nil &&
 		*pet.SoldByCustomerID == customerID
+}
+
+// dedupeIDs removes duplicate ids, preserving first-seen order, so a cart holding the
+// same pet twice resolves to a single purchase rather than failing the whole checkout.
+func dedupeIDs(ids []uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{}, len(ids))
+	out := make([]uuid.UUID, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
 }
 
 func decodeCursor(cursor string) (pagination.Cursor, error) {
