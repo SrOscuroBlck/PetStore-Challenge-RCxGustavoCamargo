@@ -43,6 +43,14 @@ make check                 # format check, go vet, golangci-lint, build, race te
 HTTP_ADDR=:8443 make run   # run the server; GET /healthz returns {"status":"ok"}
 ```
 
+Local dependencies and database (requires Docker):
+
+```bash
+cp .env.example .env   # the Makefile auto-loads .env (provides DATABASE_URL, etc.)
+make dev               # start Postgres, Redis, MinIO via docker-compose
+make migrate-up        # apply the database schema
+```
+
 Configuration is read from environment variables and validated at startup — a missing
 required value aborts with an error naming it. See [`.env.example`](.env.example) for the
 variables currently in use (more are added as features that need them land).

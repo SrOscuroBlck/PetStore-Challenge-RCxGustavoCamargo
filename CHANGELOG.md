@@ -11,3 +11,5 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Fail-fast typed configuration loader and structured (`slog`) logging.
 - HTTP server skeleton with a `/healthz` endpoint and graceful shutdown on SIGINT/SIGTERM.
 - Pinned `.golangci.yml` lint configuration; CI installs and runs the pinned golangci-lint.
+- Database schema as code and Atlas versioned-migration workflow.
+- Local `docker-compose` stack (Postgres, Redis, MinIO) wired to `make dev`.
