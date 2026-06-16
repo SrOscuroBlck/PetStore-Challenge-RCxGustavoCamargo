@@ -18,13 +18,14 @@ func (e *ValidationError) Error() string {
 }
 
 var (
-	ErrPetNotFound      = errors.New("pet not found")
-	ErrPetUnavailable   = errors.New("pet is no longer available")
-	ErrPetNotRemovable  = errors.New("pet cannot be removed")
-	ErrStoreNotFound    = errors.New("store not found")
-	ErrMerchantNotFound = errors.New("merchant not found")
-	ErrCustomerNotFound = errors.New("customer not found")
-	ErrEmailInUse       = errors.New("email already in use")
+	ErrPetNotFound        = errors.New("pet not found")
+	ErrPetUnavailable     = errors.New("pet is no longer available")
+	ErrPetNotRemovable    = errors.New("pet cannot be removed")
+	ErrStoreNotFound      = errors.New("store not found")
+	ErrStoreAlreadyExists = errors.New("merchant already has a store")
+	ErrMerchantNotFound   = errors.New("merchant not found")
+	ErrCustomerNotFound   = errors.New("customer not found")
+	ErrEmailInUse         = errors.New("email already in use")
 )
 
 type UnavailablePet struct {
@@ -39,7 +40,11 @@ type UnavailablePetsError struct {
 func (e *UnavailablePetsError) Error() string {
 	names := make([]string, len(e.Pets))
 	for i, pet := range e.Pets {
-		names[i] = pet.Name
+		if pet.Name != "" {
+			names[i] = pet.Name
+		} else {
+			names[i] = pet.ID.String()
+		}
 	}
 	return "these pets are no longer available: " + strings.Join(names, ", ")
 }

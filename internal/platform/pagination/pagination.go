@@ -11,13 +11,15 @@ import (
 	"github.com/google/uuid"
 )
 
+// Cursor is an opaque keyset position: the sort timestamp of the last row seen
+// (created_at for the available list, sold_at for the sold list) plus its id.
 type Cursor struct {
-	CreatedAt time.Time
-	ID        uuid.UUID
+	SortKey time.Time
+	ID      uuid.UUID
 }
 
 func Encode(c Cursor) string {
-	raw := fmt.Sprintf("%d:%s", c.CreatedAt.UnixMicro(), c.ID.String())
+	raw := fmt.Sprintf("%d:%s", c.SortKey.UnixMicro(), c.ID.String())
 	return base64.RawURLEncoding.EncodeToString([]byte(raw))
 }
 
@@ -38,5 +40,5 @@ func Decode(encoded string) (Cursor, error) {
 	if err != nil {
 		return Cursor{}, fmt.Errorf("parse cursor id: %w", err)
 	}
-	return Cursor{CreatedAt: time.UnixMicro(unixMicros).UTC(), ID: id}, nil
+	return Cursor{SortKey: time.UnixMicro(unixMicros).UTC(), ID: id}, nil
 }

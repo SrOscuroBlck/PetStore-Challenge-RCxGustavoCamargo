@@ -9,16 +9,16 @@ import (
 
 func TestCursor_RoundTrip(t *testing.T) {
 	want := Cursor{
-		CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
-		ID:        uuid.New(),
+		SortKey: time.Now().UTC().Truncate(time.Microsecond),
+		ID:      uuid.New(),
 	}
 
 	got, err := Decode(Encode(want))
 	if err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if !got.CreatedAt.Equal(want.CreatedAt) {
-		t.Fatalf("createdAt mismatch: got %v want %v", got.CreatedAt, want.CreatedAt)
+	if !got.SortKey.Equal(want.SortKey) {
+		t.Fatalf("sortKey mismatch: got %v want %v", got.SortKey, want.SortKey)
 	}
 	if got.ID != want.ID {
 		t.Fatalf("id mismatch: got %v want %v", got.ID, want.ID)
