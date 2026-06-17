@@ -14,6 +14,7 @@ const (
 	playgroundMerchantAuth  = "Basic bWVyY2hhbnRAcGV0c3RvcmUubG9jYWw6ZGVtby1wYXNzd29yZA=="
 	playgroundMerchant2Auth = "Basic bWVyY2hhbnQyQHBldHN0b3JlLmxvY2FsOmRlbW8tcGFzc3dvcmQ="
 	playgroundCustomerAuth  = "Basic Y3VzdG9tZXJAcGV0c3RvcmUubG9jYWw6ZGVtby1wYXNzd29yZA=="
+	playgroundCustomer2Auth = "Basic Y3VzdG9tZXIyQHBldHN0b3JlLmxvY2FsOmRlbW8tcGFzc3dvcmQ="
 	playgroundStoreID       = "11111111-1111-1111-1111-111111111111"
 )
 
@@ -80,6 +81,11 @@ func playgroundWindows() []map[string]any {
 				"query { unsoldPets(first: 50) { edges { node { id name species } } } }\n",
 			playgroundMerchant2Auth, "{}"),
 
+		playgroundWindow("M7 · store isolation (merchant 2 → store-1 id = NOT_FOUND)",
+			"# Auth is MERCHANT 2; paste a STORE-1 pet id → must be NOT_FOUND.\n"+
+				"mutation RemovePet($id: ID!) {\n  removePet(id: $id) { id status }\n}\n",
+			playgroundMerchant2Auth, "{\n  \"id\": \"PASTE-A-STORE-1-PET-ID\"\n}"),
+
 		playgroundWindow("C1 · availablePets (optional species filter)",
 			"query AvailablePets($storeId: ID!, $species: Species, $first: Int, $after: String) {\n"+
 				"  availablePets(storeId: $storeId, species: $species, first: $first, after: $after) {\n"+
@@ -95,5 +101,11 @@ func playgroundWindows() []map[string]any {
 		playgroundWindow("C3 · checkout (paste 2–3 AVAILABLE ids)",
 			"mutation Checkout($petIds: [ID!]!) {\n  checkout(petIds: $petIds) { id name status }\n}\n",
 			playgroundCustomerAuth, "{\n  \"petIds\": [\"PASTE-ID-1\", \"PASTE-ID-2\"]\n}"),
+
+		playgroundWindow("C4 · purchase as CUSTOMER 2 (set up the race)",
+			"# Auth here is CUSTOMER 2 — buy a pet customer 1 is viewing, then watch\n"+
+				"# customer 1 get a human-readable \"no longer available\" error.\n"+
+				"mutation PurchasePet($petId: ID!) {\n  purchasePet(petId: $petId) { id name status }\n}\n",
+			playgroundCustomer2Auth, "{\n  \"petId\": \"PASTE-A-PET-CUSTOMER-1-WILL-TRY\"\n}"),
 	}
 }
