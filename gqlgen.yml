@@ -33,3 +33,10 @@ models:
     extraFields:
       PictureObjectKey:
         type: string
+  PublicPet:
+    fields:
+      pictureUrl:
+        resolver: true
+    extraFields:
+      PictureObjectKey:
+        type: string

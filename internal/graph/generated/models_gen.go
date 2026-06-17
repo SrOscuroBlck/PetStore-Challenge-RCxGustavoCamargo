@@ -58,6 +58,32 @@ type PetEdge struct {
 	Cursor string `json:"cursor"`
 }
 
+// PublicPet is the customer-facing view of a pet. It omits breeder contact details
+// so breeder PII is never exposed to customers, even though the cached domain pet
+// still carries them.
+type PublicPet struct {
+	ID               string     `json:"id"`
+	Name             string     `json:"name"`
+	Species          Species    `json:"species"`
+	AgeYears         int        `json:"ageYears"`
+	Description      string     `json:"description"`
+	PictureURL       string     `json:"pictureUrl"`
+	Status           PetStatus  `json:"status"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	SoldAt           *time.Time `json:"soldAt,omitempty"`
+	PictureObjectKey string     `json:"-"`
+}
+
+type PublicPetConnection struct {
+	Edges    []PublicPetEdge `json:"edges"`
+	PageInfo *PageInfo       `json:"pageInfo"`
+}
+
+type PublicPetEdge struct {
+	Node   *PublicPet `json:"node"`
+	Cursor string     `json:"cursor"`
+}
+
 type Query struct {
 }
 

@@ -22,6 +22,46 @@ func toGraphPet(pet domain.Pet) *generated.Pet {
 	}
 }
 
+func toGraphPublicPet(pet domain.Pet) *generated.PublicPet {
+	return &generated.PublicPet{
+		ID:               pet.ID.String(),
+		Name:             pet.Name,
+		Species:          generated.Species(pet.Species),
+		AgeYears:         pet.AgeYears,
+		Description:      pet.Description,
+		Status:           generated.PetStatus(pet.Status),
+		CreatedAt:        pet.CreatedAt,
+		SoldAt:           pet.SoldAt,
+		PictureObjectKey: pet.PictureObjectKey,
+	}
+}
+
+func toPublicPets(pets []domain.Pet) []generated.PublicPet {
+	out := make([]generated.PublicPet, 0, len(pets))
+	for _, pet := range pets {
+		out = append(out, *toGraphPublicPet(pet))
+	}
+	return out
+}
+
+func toPublicConnection(pets []domain.Pet, nextCursor string) *generated.PublicPetConnection {
+	edges := make([]generated.PublicPetEdge, 0, len(pets))
+	for _, pet := range pets {
+		edges = append(edges, generated.PublicPetEdge{
+			Node:   toGraphPublicPet(pet),
+			Cursor: pagination.Encode(availableCursor(pet)),
+		})
+	}
+
+	pageInfo := &generated.PageInfo{HasNextPage: nextCursor != ""}
+	if len(edges) > 0 {
+		endCursor := edges[len(edges)-1].Cursor
+		pageInfo.EndCursor = &endCursor
+	}
+
+	return &generated.PublicPetConnection{Edges: edges, PageInfo: pageInfo}
+}
+
 // availableCursor and soldCursor derive a pet's keyset cursor: the available
 // listing orders by created_at, the sold listing by sold_at.
 func availableCursor(pet domain.Pet) pagination.Cursor {

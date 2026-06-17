@@ -74,4 +74,48 @@ The store's not-yet-sold (`AVAILABLE`) pets, keyset paginated by `created_at`.
 query { unsoldPets(first: 20) { edges { node { id name } cursor } pageInfo { hasNextPage endCursor } } }
 ```
 
-> The `Pet` type exposes breeder contact fields because every operation here is merchant-only. The customer-facing catalog (a later issue) must use a separate type that omits breeder PII.
+> The `Pet` type exposes breeder contact fields because every operation here is merchant-only. Customer operations use `PublicPet`, which omits breeder PII.
+
+---
+
+## Customer operations
+
+All require the **customer** role. They return `PublicPet` — the same pet without breeder contact fields, so breeder PII is never exposed to customers. A purchase is race-safe: under concurrent attempts on the same pet, exactly one succeeds.
+
+### `availablePets` (query)
+A store's not-yet-sold pets, keyset paginated by `created_at`. Customers are not store-scoped, so the store is a client argument; sold/removed pets never appear. An unknown `storeId` yields an empty connection.
+
+- **Arguments:** `storeId: ID!`, `first: Int` (default 20, max 100), `after: String`.
+- **Returns:** `PublicPetConnection!`.
+- **Errors:** `VALIDATION` (bad `storeId`/`after`), `UNAUTHENTICATED`, `FORBIDDEN`.
+
+```graphql
+query($storeId: ID!) {
+  availablePets(storeId: $storeId, first: 20) {
+    edges { node { id name pictureUrl } cursor }
+    pageInfo { hasNextPage endCursor }
+  }
+}
+```
+
+### `purchasePet` (mutation)
+Instantly buys one available pet for the authenticated customer. Idempotent — re-purchasing a pet you already own succeeds.
+
+- **Arguments:** `petId: ID!`
+- **Returns:** `PublicPet!` (`status = SOLD`).
+- **Errors:** `UNAVAILABLE` (sold to someone else / removed), `NOT_FOUND` (no such pet), `VALIDATION`, `UNAUTHENTICATED`, `FORBIDDEN`.
+
+```graphql
+mutation { purchasePet(petId: "…") { id status } }
+```
+
+### `checkout` (mutation)
+Buys several pets atomically — all or nothing. If any pet is unavailable the whole checkout fails and the error message names every unavailable pet.
+
+- **Arguments:** `petIds: [ID!]!`
+- **Returns:** `[PublicPet!]!` (each `SOLD`).
+- **Errors:** `UNAVAILABLE` — message lists the unavailable pets' names; plus `VALIDATION`, `UNAUTHENTICATED`, `FORBIDDEN`.
+
+```graphql
+mutation($petIds: [ID!]!) { checkout(petIds: $petIds) { id status } }
+```

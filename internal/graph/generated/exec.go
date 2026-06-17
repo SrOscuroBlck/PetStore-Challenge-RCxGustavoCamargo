@@ -30,6 +30,7 @@ type Config = graphql.Config[ResolverRoot, DirectiveRoot, ComplexityRoot]
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Pet() PetResolver
+	PublicPet() PublicPetResolver
 	Query() QueryResolver
 }
 
@@ -38,8 +39,10 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreatePet func(childComplexity int, input CreatePetInput) int
-		RemovePet func(childComplexity int, id string) int
+		Checkout    func(childComplexity int, petIds []string) int
+		CreatePet   func(childComplexity int, input CreatePetInput) int
+		PurchasePet func(childComplexity int, petID string) int
+		RemovePet   func(childComplexity int, id string) int
 	}
 
 	PageInfo struct {
@@ -71,9 +74,32 @@ type ComplexityRoot struct {
 		Node   func(childComplexity int) int
 	}
 
+	PublicPet struct {
+		AgeYears    func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		Description func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Name        func(childComplexity int) int
+		PictureURL  func(childComplexity int) int
+		SoldAt      func(childComplexity int) int
+		Species     func(childComplexity int) int
+		Status      func(childComplexity int) int
+	}
+
+	PublicPetConnection struct {
+		Edges    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	PublicPetEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
+	}
+
 	Query struct {
-		SoldPets   func(childComplexity int, from time.Time, to time.Time, first *int, after *string) int
-		UnsoldPets func(childComplexity int, first *int, after *string) int
+		AvailablePets func(childComplexity int, storeID string, first *int, after *string) int
+		SoldPets      func(childComplexity int, from time.Time, to time.Time, first *int, after *string) int
+		UnsoldPets    func(childComplexity int, first *int, after *string) int
 	}
 }
 
@@ -84,13 +110,19 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreatePet(ctx context.Context, input CreatePetInput) (*Pet, error)
 	RemovePet(ctx context.Context, id string) (*Pet, error)
+	PurchasePet(ctx context.Context, petID string) (*PublicPet, error)
+	Checkout(ctx context.Context, petIds []string) ([]PublicPet, error)
 }
 type PetResolver interface {
 	PictureURL(ctx context.Context, obj *Pet) (string, error)
 }
+type PublicPetResolver interface {
+	PictureURL(ctx context.Context, obj *PublicPet) (string, error)
+}
 type QueryResolver interface {
 	SoldPets(ctx context.Context, from time.Time, to time.Time, first *int, after *string) (*PetConnection, error)
 	UnsoldPets(ctx context.Context, first *int, after *string) (*PetConnection, error)
+	AvailablePets(ctx context.Context, storeID string, first *int, after *string) (*PublicPetConnection, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -111,6 +143,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	_ = ec
 	switch typeName + "." + field {
 
+	case "Mutation.checkout":
+		if e.ComplexityRoot.Mutation.Checkout == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_checkout_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.Checkout(childComplexity, args["petIds"].([]string)), true
 	case "Mutation.createPet":
 		if e.ComplexityRoot.Mutation.CreatePet == nil {
 			break
@@ -122,6 +165,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.CreatePet(childComplexity, args["input"].(CreatePetInput)), true
+	case "Mutation.purchasePet":
+		if e.ComplexityRoot.Mutation.PurchasePet == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_purchasePet_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.PurchasePet(childComplexity, args["petId"].(string)), true
 	case "Mutation.removePet":
 		if e.ComplexityRoot.Mutation.RemovePet == nil {
 			break
@@ -239,6 +293,99 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.PetEdge.Node(childComplexity), true
+
+	case "PublicPet.ageYears":
+		if e.ComplexityRoot.PublicPet.AgeYears == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPet.AgeYears(childComplexity), true
+	case "PublicPet.createdAt":
+		if e.ComplexityRoot.PublicPet.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPet.CreatedAt(childComplexity), true
+	case "PublicPet.description":
+		if e.ComplexityRoot.PublicPet.Description == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPet.Description(childComplexity), true
+	case "PublicPet.id":
+		if e.ComplexityRoot.PublicPet.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPet.ID(childComplexity), true
+	case "PublicPet.name":
+		if e.ComplexityRoot.PublicPet.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPet.Name(childComplexity), true
+	case "PublicPet.pictureUrl":
+		if e.ComplexityRoot.PublicPet.PictureURL == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPet.PictureURL(childComplexity), true
+	case "PublicPet.soldAt":
+		if e.ComplexityRoot.PublicPet.SoldAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPet.SoldAt(childComplexity), true
+	case "PublicPet.species":
+		if e.ComplexityRoot.PublicPet.Species == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPet.Species(childComplexity), true
+	case "PublicPet.status":
+		if e.ComplexityRoot.PublicPet.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPet.Status(childComplexity), true
+
+	case "PublicPetConnection.edges":
+		if e.ComplexityRoot.PublicPetConnection.Edges == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPetConnection.Edges(childComplexity), true
+	case "PublicPetConnection.pageInfo":
+		if e.ComplexityRoot.PublicPetConnection.PageInfo == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPetConnection.PageInfo(childComplexity), true
+
+	case "PublicPetEdge.cursor":
+		if e.ComplexityRoot.PublicPetEdge.Cursor == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPetEdge.Cursor(childComplexity), true
+	case "PublicPetEdge.node":
+		if e.ComplexityRoot.PublicPetEdge.Node == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PublicPetEdge.Node(childComplexity), true
+
+	case "Query.availablePets":
+		if e.ComplexityRoot.Query.AvailablePets == nil {
+			break
+		}
+
+		args, err := ec.field_Query_availablePets_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.AvailablePets(childComplexity, args["storeId"].(string), args["first"].(*int), args["after"].(*string)), true
 
 	case "Query.soldPets":
 		if e.ComplexityRoot.Query.SoldPets == nil {
@@ -406,14 +553,44 @@ input CreatePetInput {
   breederEmail: String!
 }
 
+"""
+PublicPet is the customer-facing view of a pet. It omits breeder contact details
+so breeder PII is never exposed to customers, even though the cached domain pet
+still carries them.
+"""
+type PublicPet {
+  id: ID!
+  name: String!
+  species: Species!
+  ageYears: Int!
+  description: String!
+  pictureUrl: String!
+  status: PetStatus!
+  createdAt: Time!
+  soldAt: Time
+}
+
+type PublicPetEdge {
+  node: PublicPet!
+  cursor: String!
+}
+
+type PublicPetConnection {
+  edges: [PublicPetEdge!]!
+  pageInfo: PageInfo!
+}
+
 type Mutation {
   createPet(input: CreatePetInput!): Pet!
   removePet(id: ID!): Pet!
+  purchasePet(petId: ID!): PublicPet!
+  checkout(petIds: [ID!]!): [PublicPet!]!
 }
 
 type Query {
   soldPets(from: Time!, to: Time!, first: Int, after: String): PetConnection!
   unsoldPets(first: Int, after: String): PetConnection!
+  availablePets(storeId: ID!, first: Int, after: String): PublicPetConnection!
 }
 `, BuiltIn: false},
 }
@@ -479,6 +656,50 @@ func (ec *executionContext) childFields_PetEdge(ctx context.Context, field graph
 		return ec.fieldContext_PetEdge_cursor(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type PetEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_PublicPet(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_PublicPet_id(ctx, field)
+	case "name":
+		return ec.fieldContext_PublicPet_name(ctx, field)
+	case "species":
+		return ec.fieldContext_PublicPet_species(ctx, field)
+	case "ageYears":
+		return ec.fieldContext_PublicPet_ageYears(ctx, field)
+	case "description":
+		return ec.fieldContext_PublicPet_description(ctx, field)
+	case "pictureUrl":
+		return ec.fieldContext_PublicPet_pictureUrl(ctx, field)
+	case "status":
+		return ec.fieldContext_PublicPet_status(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_PublicPet_createdAt(ctx, field)
+	case "soldAt":
+		return ec.fieldContext_PublicPet_soldAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PublicPet", field.Name)
+}
+
+func (ec *executionContext) childFields_PublicPetConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_PublicPetConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_PublicPetConnection_pageInfo(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PublicPetConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_PublicPetEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_PublicPetEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_PublicPetEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PublicPetEdge", field.Name)
 }
 
 func (ec *executionContext) childFields___Directive(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -597,6 +818,20 @@ func (ec *executionContext) childFields___Type(ctx context.Context, field graphq
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_checkout_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "petIds",
+		func(ctx context.Context, v any) ([]string, error) {
+			return ec.unmarshalNID2ᚕstringᚄ(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["petIds"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createPet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -608,6 +843,20 @@ func (ec *executionContext) field_Mutation_createPet_args(ctx context.Context, r
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_purchasePet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "petId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["petId"] = arg0
 	return args, nil
 }
 
@@ -636,6 +885,36 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_availablePets_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "storeId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["storeId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg2
 	return args, nil
 }
 
@@ -841,6 +1120,94 @@ func (ec *executionContext) fieldContext_Mutation_removePet(ctx context.Context,
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_removePet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_purchasePet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_purchasePet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().PurchasePet(ctx, fc.Args["petId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *PublicPet) graphql.Marshaler {
+			return ec.marshalNPublicPet2ᚖroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPet(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_purchasePet(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PublicPet(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_purchasePet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_checkout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_checkout(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().Checkout(ctx, fc.Args["petIds"].([]string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []PublicPet) graphql.Marshaler {
+			return ec.marshalNPublicPet2ᚕroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPetᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_checkout(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PublicPet(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_checkout_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1265,6 +1632,332 @@ func (ec *executionContext) fieldContext_PetEdge_cursor(_ context.Context, field
 	return graphql.NewScalarFieldContext("PetEdge", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
+func (ec *executionContext) _PublicPet_id(ctx context.Context, field graphql.CollectedField, obj *PublicPet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPet_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPet_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPet", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _PublicPet_name(ctx context.Context, field graphql.CollectedField, obj *PublicPet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPet_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPet_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPet", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PublicPet_species(ctx context.Context, field graphql.CollectedField, obj *PublicPet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPet_species(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Species, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v Species) graphql.Marshaler {
+			return ec.marshalNSpecies2roboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐSpecies(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPet_species(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPet", field, false, false, errors.New("field of type Species does not have child fields"))
+}
+
+func (ec *executionContext) _PublicPet_ageYears(ctx context.Context, field graphql.CollectedField, obj *PublicPet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPet_ageYears(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AgeYears, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPet_ageYears(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPet", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _PublicPet_description(ctx context.Context, field graphql.CollectedField, obj *PublicPet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPet_description(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPet_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPet", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PublicPet_pictureUrl(ctx context.Context, field graphql.CollectedField, obj *PublicPet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPet_pictureUrl(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.PublicPet().PictureURL(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPet_pictureUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPet", field, true, true, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PublicPet_status(ctx context.Context, field graphql.CollectedField, obj *PublicPet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPet_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v PetStatus) graphql.Marshaler {
+			return ec.marshalNPetStatus2roboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPetStatus(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPet_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPet", field, false, false, errors.New("field of type PetStatus does not have child fields"))
+}
+
+func (ec *executionContext) _PublicPet_createdAt(ctx context.Context, field graphql.CollectedField, obj *PublicPet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPet_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPet_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPet", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _PublicPet_soldAt(ctx context.Context, field graphql.CollectedField, obj *PublicPet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPet_soldAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SoldAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPet_soldAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPet", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _PublicPetConnection_edges(ctx context.Context, field graphql.CollectedField, obj *PublicPetConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPetConnection_edges(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Edges, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []PublicPetEdge) graphql.Marshaler {
+			return ec.marshalNPublicPetEdge2ᚕroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPetEdgeᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPetConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicPetConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PublicPetEdge(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicPetConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *PublicPetConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPetConnection_pageInfo(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PageInfo, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *PageInfo) graphql.Marshaler {
+			return ec.marshalNPageInfo2ᚖroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPageInfo(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPetConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicPetConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PageInfo(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicPetEdge_node(ctx context.Context, field graphql.CollectedField, obj *PublicPetEdge) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPetEdge_node(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Node, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *PublicPet) graphql.Marshaler {
+			return ec.marshalNPublicPet2ᚖroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPet(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPetEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicPetEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PublicPet(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicPetEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *PublicPetEdge) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PublicPetEdge_cursor(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Cursor, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PublicPetEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PublicPetEdge", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
 func (ec *executionContext) _Query_soldPets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1347,6 +2040,50 @@ func (ec *executionContext) fieldContext_Query_unsoldPets(ctx context.Context, f
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_unsoldPets_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_availablePets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_availablePets(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().AvailablePets(ctx, fc.Args["storeId"].(string), fc.Args["first"].(*int), fc.Args["after"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *PublicPetConnection) graphql.Marshaler {
+			return ec.marshalNPublicPetConnection2ᚖroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPetConnection(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_availablePets(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PublicPetConnection(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_availablePets_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2601,6 +3338,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "purchasePet":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_purchasePet(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "checkout":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_checkout(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2876,6 +3627,204 @@ func (ec *executionContext) _PetEdge(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
+var publicPetImplementors = []string{"PublicPet"}
+
+func (ec *executionContext) _PublicPet(ctx context.Context, sel ast.SelectionSet, obj *PublicPet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, publicPetImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PublicPet")
+		case "id":
+			out.Values[i] = ec._PublicPet_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "name":
+			out.Values[i] = ec._PublicPet_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "species":
+			out.Values[i] = ec._PublicPet_species(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "ageYears":
+			out.Values[i] = ec._PublicPet_ageYears(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "description":
+			out.Values[i] = ec._PublicPet_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "pictureUrl":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._PublicPet_pictureUrl(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "status":
+			out.Values[i] = ec._PublicPet_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._PublicPet_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "soldAt":
+			out.Values[i] = ec._PublicPet_soldAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var publicPetConnectionImplementors = []string{"PublicPetConnection"}
+
+func (ec *executionContext) _PublicPetConnection(ctx context.Context, sel ast.SelectionSet, obj *PublicPetConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, publicPetConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PublicPetConnection")
+		case "edges":
+			out.Values[i] = ec._PublicPetConnection_edges(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._PublicPetConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var publicPetEdgeImplementors = []string{"PublicPetEdge"}
+
+func (ec *executionContext) _PublicPetEdge(ctx context.Context, sel ast.SelectionSet, obj *PublicPetEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, publicPetEdgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PublicPetEdge")
+		case "node":
+			out.Values[i] = ec._PublicPetEdge_node(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._PublicPetEdge_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -2927,6 +3876,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_unsoldPets(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "availablePets":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_availablePets(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -3411,6 +4382,36 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3493,6 +4494,70 @@ func (ec *executionContext) unmarshalNPetStatus2roboticCrewChallengeᚋinternal�
 
 func (ec *executionContext) marshalNPetStatus2roboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPetStatus(ctx context.Context, sel ast.SelectionSet, v PetStatus) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNPublicPet2roboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPet(ctx context.Context, sel ast.SelectionSet, v PublicPet) graphql.Marshaler {
+	return ec._PublicPet(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPublicPet2ᚕroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPetᚄ(ctx context.Context, sel ast.SelectionSet, v []PublicPet) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNPublicPet2roboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPet(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPublicPet2ᚖroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPet(ctx context.Context, sel ast.SelectionSet, v *PublicPet) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PublicPet(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPublicPetConnection2roboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPetConnection(ctx context.Context, sel ast.SelectionSet, v PublicPetConnection) graphql.Marshaler {
+	return ec._PublicPetConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPublicPetConnection2ᚖroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPetConnection(ctx context.Context, sel ast.SelectionSet, v *PublicPetConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PublicPetConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPublicPetEdge2roboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPetEdge(ctx context.Context, sel ast.SelectionSet, v PublicPetEdge) graphql.Marshaler {
+	return ec._PublicPetEdge(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPublicPetEdge2ᚕroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPetEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []PublicPetEdge) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNPublicPetEdge2roboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐPublicPetEdge(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalNSpecies2roboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐSpecies(ctx context.Context, v any) (Species, error) {
