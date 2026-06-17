@@ -7,6 +7,9 @@ INSERT INTO pets (
 -- name: GetPetByID :one
 SELECT * FROM pets WHERE store_id = $1 AND id = $2;
 
+-- name: CountPetsByStore :one
+SELECT count(*) FROM pets WHERE store_id = $1;
+
 -- name: GetPetByIDUnscoped :one
 SELECT * FROM pets WHERE id = $1;
 

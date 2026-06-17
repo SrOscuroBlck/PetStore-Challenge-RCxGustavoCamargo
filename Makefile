@@ -98,6 +98,8 @@ migrate-lint: ## Lint migrations for unsafe changes
 K8S_NS ?= petstore
 K8S_IMAGE ?= petstore-api:dev
 K8S_DIR := deploy/k8s
+# Must match demoStoreID in cmd/seed; the seeder pins the demo store to this id.
+DEMO_STORE_ID := 11111111-1111-1111-1111-111111111111
 
 .PHONY: k8s-up
 k8s-up: ## Bring up the full stack on Minikube (single command)
@@ -138,17 +140,19 @@ k8s-up: ## Bring up the full stack on Minikube (single command)
 	echo ">> deploying API (runs migrations first) + ingress"; \
 	kubectl apply -f $(K8S_DIR)/api.yaml -f $(K8S_DIR)/ingress.yaml; \
 	kubectl -n $(K8S_NS) rollout status deploy/petstore-api --timeout=180s; \
-	echo ">> seeding demo accounts"; \
+	echo ">> seeding demo accounts and catalog"; \
 	kubectl -n $(K8S_NS) delete job petstore-seed --ignore-not-found; \
 	kubectl apply -f $(K8S_DIR)/seed-job.yaml; \
 	kubectl -n $(K8S_NS) wait --for=condition=complete job/petstore-seed --timeout=120s; \
 	echo ""; \
 	echo "Stack is up. Reach the API over TLS from your host:"; \
-	echo "  kubectl port-forward -n $(K8S_NS) svc/petstore-api 8443:8443"; \
-	echo "Then:"; \
-	echo "  curl -k https://localhost:8443/healthz"; \
-	echo "  curl -k -u merchant@petstore.local:demo-password -H 'Content-Type: application/json' \\"; \
-	echo "       -d '{\"query\":\"{ unsoldPets(first:5){ edges{ node{ id name } } } }\"}' https://localhost:8443/graphql"
+	echo "  kubectl port-forward -n $(K8S_NS) svc/petstore-api 8443:8443   # leave running"; \
+	echo ""; \
+	echo "Demo store id: $(DEMO_STORE_ID)"; \
+	echo "  Customer storefront: open /store/$(DEMO_STORE_ID) in the frontend"; \
+	echo "  Health:   curl -k https://localhost:8443/healthz"; \
+	echo "  Catalog:  curl -k -u customer@petstore.local:demo-password -H 'Content-Type: application/json' \\"; \
+	echo "            -d '{\"query\":\"{ availablePets(storeId:\\\"$(DEMO_STORE_ID)\\\", first:12){ edges{ node{ name species pictureUrl } } pageInfo{ hasNextPage endCursor } } }\"}' https://localhost:8443/graphql"
 
 .PHONY: k8s-down
 k8s-down: ## Tear down the stack (keeps the Minikube VM)
