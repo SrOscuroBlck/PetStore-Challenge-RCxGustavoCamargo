@@ -201,11 +201,16 @@ func seedDemoPets(ctx context.Context, catalog *listing.Service, pets *postgres.
 	if count > 0 {
 		return 0, nil
 	}
+	images, err := loadPetImages()
+	if err != nil {
+		return 0, err
+	}
+	used := make(map[domain.Species]int)
 	for _, pet := range demoCatalog {
-		picture, err := speciesPicture(pet.species)
-		if err != nil {
-			return 0, err
-		}
+		pics := images[pet.species]
+		picture := pics[used[pet.species]%len(pics)]
+		used[pet.species]++
+
 		_, err = catalog.CreatePet(ctx, listing.CreatePetCommand{
 			StoreID:      storeID,
 			Name:         pet.name,

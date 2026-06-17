@@ -90,8 +90,9 @@ before the API serves traffic.** A one-shot Job then seeds demo accounts and a c
 | Merchant (owns a "Demo Store") | `merchant@petstore.local` | `demo-password` |
 | Customer | `customer@petstore.local` | `demo-password` |
 
-The store is pre-filled with a catalog of cats, dogs, and frogs (with placeholder images),
-so the customer storefront is browsable immediately. The demo store id is fixed —
+The store is pre-filled with a catalog of cats, dogs, and frogs (with real bundled photos —
+see [`cmd/seed/assets/CREDITS.md`](cmd/seed/assets/CREDITS.md)), so the customer storefront is
+browsable immediately. The demo store id is fixed —
 **`11111111-1111-1111-1111-111111111111`** — so the customer site opens at
 `/store/11111111-1111-1111-1111-111111111111`. `make k8s-up` also prints it at the end. Seeding is
 idempotent: re-running leaves existing demo data untouched.

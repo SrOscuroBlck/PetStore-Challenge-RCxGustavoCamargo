@@ -1,12 +1,9 @@
 package main
 
 import (
-	"bytes"
+	"embed"
 	"fmt"
-	"image"
-	"image/color"
-	"image/draw"
-	"image/png"
+	"strings"
 
 	"roboticCrewChallenge/internal/domain"
 )
@@ -51,27 +48,44 @@ var demoCatalog = []demoPet{
 	{"Bubbles", domain.SpeciesFrog, 2, "Playful aquatic frog, always swimming."},
 }
 
-var speciesColors = map[domain.Species]color.RGBA{
-	domain.SpeciesDog:  {R: 139, G: 94, B: 60, A: 255},
-	domain.SpeciesCat:  {R: 230, G: 140, B: 60, A: 255},
-	domain.SpeciesFrog: {R: 80, G: 170, B: 90, A: 255},
+// petImages holds the bundled demo photos. They are embedded (not fetched at
+// runtime) so the seeded store has real pictures while the system stays fully
+// local. See assets/CREDITS.md for sources.
+//
+//go:embed assets/*.jpg assets/*.png
+var petImages embed.FS
+
+var speciesImagePrefix = map[domain.Species]string{
+	domain.SpeciesDog:  "dog-",
+	domain.SpeciesCat:  "cat-",
+	domain.SpeciesFrog: "frog-",
 }
 
-// speciesPicture renders a solid-color PNG placeholder so every seeded pet has a
-// real, servable image — distinct per species — without bundling binary assets in
-// the repository.
-func speciesPicture(species domain.Species) ([]byte, error) {
-	const size = 400
-	img := image.NewRGBA(image.Rect(0, 0, size, size))
-	fill, ok := speciesColors[species]
-	if !ok {
-		return nil, fmt.Errorf("no placeholder color for species %q", species)
+// loadPetImages reads the embedded photos grouped by species, using the filename
+// prefix to classify each one. ReadDir returns entries sorted by name, so the
+// grouping is deterministic across runs.
+func loadPetImages() (map[domain.Species][][]byte, error) {
+	entries, err := petImages.ReadDir("assets")
+	if err != nil {
+		return nil, fmt.Errorf("read embedded images: %w", err)
 	}
-	draw.Draw(img, img.Bounds(), &image.Uniform{C: fill}, image.Point{}, draw.Src)
-
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		return nil, fmt.Errorf("encode %s placeholder: %w", species, err)
+	images := make(map[domain.Species][][]byte)
+	for _, entry := range entries {
+		for species, prefix := range speciesImagePrefix {
+			if !strings.HasPrefix(entry.Name(), prefix) {
+				continue
+			}
+			data, err := petImages.ReadFile("assets/" + entry.Name())
+			if err != nil {
+				return nil, fmt.Errorf("read %s: %w", entry.Name(), err)
+			}
+			images[species] = append(images[species], data)
+		}
 	}
-	return buf.Bytes(), nil
+	for species, prefix := range speciesImagePrefix {
+		if len(images[species]) == 0 {
+			return nil, fmt.Errorf("no embedded images with prefix %q for %s", prefix, species)
+		}
+	}
+	return images, nil
 }
