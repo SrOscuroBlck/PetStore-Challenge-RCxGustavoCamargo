@@ -23,6 +23,9 @@ const (
 // so it reuses the TLS cert the browser already trusts (no separate SSL setup).
 func NewPlaygroundHandler(endpoint string) http.Handler {
 	return playground.AltairHandler("Pet Store API", endpoint, map[string]any{
+		// preserveState:false makes Altair load the seeded tabs every time instead
+		// of restoring a previous (possibly empty) session from browser storage.
+		"preserveState":  false,
 		"initialWindows": playgroundWindows(),
 	})
 }
