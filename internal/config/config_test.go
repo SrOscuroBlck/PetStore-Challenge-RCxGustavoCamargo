@@ -18,6 +18,7 @@ func setRequired(t *testing.T) {
 	t.Setenv("HTTP_ADDR", ":8443")
 	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost:5432/petstore")
 	t.Setenv("PII_ENCRYPTION_KEY", validKey())
+	t.Setenv("REDIS_ADDR", "localhost:6380")
 	t.Setenv("MINIO_ENDPOINT", "localhost:9000")
 	t.Setenv("MINIO_ACCESS_KEY", "minioadmin")
 	t.Setenv("MINIO_SECRET_KEY", "minioadmin")

@@ -15,10 +15,6 @@ import (
 	"roboticCrewChallenge/internal/platform/picture"
 )
 
-func newService() *listing.Service {
-	return listing.NewService(postgres.NewPetRepository(testPool, testEnc), testPictures)
-}
-
 func validCommand(storeID uuid.UUID) listing.CreatePetCommand {
 	return listing.CreatePetCommand{
 		StoreID:      storeID,
@@ -51,7 +47,7 @@ func TestCreatePet_StoresAvailablePetWithKey(t *testing.T) {
 	if pet.PictureObjectKey == "" {
 		t.Fatal("picture object key must be set")
 	}
-	if _, err := testPictures.PresignedURL(ctx, pet.PictureObjectKey); err != nil {
+	if _, err := harness.PictureStore.PresignedURL(ctx, pet.PictureObjectKey); err != nil {
 		t.Fatalf("uploaded object should be addressable: %v", err)
 	}
 }
@@ -113,7 +109,7 @@ func TestRemovePet_AlreadySoldIsRejected(t *testing.T) {
 	requireInfra(t)
 	ctx := context.Background()
 	svc := newService()
-	repo := postgres.NewPetRepository(testPool, testEnc)
+	repo := postgres.NewPetRepository(harness.Pool, harness.Enc)
 	storeID := seedStore(t)
 	customerID := seedCustomer(t)
 
@@ -149,7 +145,7 @@ func TestSoldPets_InclusiveRange(t *testing.T) {
 	requireInfra(t)
 	ctx := context.Background()
 	svc := newService()
-	repo := postgres.NewPetRepository(testPool, testEnc)
+	repo := postgres.NewPetRepository(harness.Pool, harness.Enc)
 	storeID := seedStore(t)
 	customerID := seedCustomer(t)
 
@@ -184,7 +180,7 @@ func TestUnsoldPets_OnlyAvailablePaginated(t *testing.T) {
 	requireInfra(t)
 	ctx := context.Background()
 	svc := newService()
-	repo := postgres.NewPetRepository(testPool, testEnc)
+	repo := postgres.NewPetRepository(harness.Pool, harness.Enc)
 	storeID := seedStore(t)
 	customerID := seedCustomer(t)
 

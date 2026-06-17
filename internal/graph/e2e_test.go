@@ -121,7 +121,7 @@ func TestE2E_RemoveAlreadySold_ReturnsConflict(t *testing.T) {
 
 	customerID := seedCustomer(t)
 	petID := uuid.MustParse(id)
-	if _, err := postgres.NewPetRepository(testPool, testEnc).Purchase(context.Background(), customerID, petID); err != nil {
+	if _, err := postgres.NewPetRepository(harness.Pool, harness.Enc).Purchase(context.Background(), customerID, petID); err != nil {
 		t.Fatalf("purchase pet: %v", err)
 	}
 

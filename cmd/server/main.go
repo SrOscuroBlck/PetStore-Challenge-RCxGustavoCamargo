@@ -6,9 +6,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"roboticCrewChallenge/internal/adapter/objectstore"
 	"roboticCrewChallenge/internal/adapter/postgres"
+	"roboticCrewChallenge/internal/adapter/rediscache"
 	"roboticCrewChallenge/internal/app/listing"
 	"roboticCrewChallenge/internal/auth"
 	"roboticCrewChallenge/internal/config"
@@ -17,6 +21,8 @@ import (
 	"roboticCrewChallenge/internal/platform/logging"
 	"roboticCrewChallenge/internal/server"
 )
+
+const catalogCacheTTL = 60 * time.Second
 
 func main() {
 	if err := run(); err != nil {
@@ -65,7 +71,16 @@ func run() error {
 		postgres.NewStoreRepository(pool),
 	)
 
-	listingService := listing.NewService(postgres.NewPetRepository(pool, encryptor), pictureStore)
+	redisClient := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
+	defer func() { _ = redisClient.Close() }()
+	pingCtx, cancelPing := context.WithTimeout(ctx, 2*time.Second)
+	if err := redisClient.Ping(pingCtx).Err(); err != nil {
+		logger.Warn("redis unreachable at startup; catalog cache degraded to passthrough", "addr", cfg.RedisAddr, "error", err)
+	}
+	cancelPing()
+	catalogCache := rediscache.New(redisClient, encryptor, logger, catalogCacheTTL)
+
+	listingService := listing.NewService(postgres.NewPetRepository(pool, encryptor), pictureStore, catalogCache)
 	graphqlHandler := graph.NewHandler(&graph.Resolver{Listing: listingService, PictureStore: pictureStore}, logger)
 
 	srv := server.New(cfg, logger, authenticator, graphqlHandler)

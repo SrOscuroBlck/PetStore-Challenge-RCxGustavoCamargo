@@ -17,14 +17,16 @@ import (
 type Service struct {
 	pets     domain.PetRepository
 	pictures domain.PictureStore
+	cache    domain.CatalogCache
 	newID    func() (uuid.UUID, error)
 	now      func() time.Time
 }
 
-func NewService(pets domain.PetRepository, pictures domain.PictureStore) *Service {
+func NewService(pets domain.PetRepository, pictures domain.PictureStore, cache domain.CatalogCache) *Service {
 	return &Service{
 		pets:     pets,
 		pictures: pictures,
+		cache:    cache,
 		newID:    id.New,
 		now:      func() time.Time { return time.Now().UTC() },
 	}
@@ -76,11 +78,17 @@ func (s *Service) CreatePet(ctx context.Context, cmd CreatePetCommand) (domain.P
 	if err := s.pets.Create(ctx, pet); err != nil {
 		return domain.Pet{}, fmt.Errorf("create pet: %w", err)
 	}
+	s.cache.InvalidateStore(ctx, pet.StoreID)
 	return pet, nil
 }
 
 func (s *Service) RemovePet(ctx context.Context, storeID, petID uuid.UUID) (domain.Pet, error) {
-	return s.pets.Remove(ctx, storeID, petID)
+	pet, err := s.pets.Remove(ctx, storeID, petID)
+	if err != nil {
+		return domain.Pet{}, err
+	}
+	s.cache.InvalidateStore(ctx, storeID)
+	return pet, nil
 }
 
 func (s *Service) SoldPets(ctx context.Context, storeID uuid.UUID, from, to time.Time, limit int, cursor string) ([]domain.Pet, string, error) {
@@ -94,7 +102,15 @@ func (s *Service) UnsoldPets(ctx context.Context, storeID uuid.UUID, limit int, 
 	if err := validateCursor(cursor); err != nil {
 		return nil, "", err
 	}
-	return s.pets.ListAvailableByStore(ctx, storeID, limit, cursor)
+	if page, ok := s.cache.GetAvailable(ctx, storeID, limit, cursor); ok {
+		return page.Pets, page.NextCursor, nil
+	}
+	pets, nextCursor, err := s.pets.ListAvailableByStore(ctx, storeID, limit, cursor)
+	if err != nil {
+		return nil, "", err
+	}
+	s.cache.SetAvailable(ctx, storeID, limit, cursor, domain.CatalogPage{Pets: pets, NextCursor: nextCursor})
+	return pets, nextCursor, nil
 }
 
 func validateCursor(cursor string) error {
