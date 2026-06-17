@@ -3,10 +3,9 @@ kind: Ingress
 metadata:
   name: petstore
   namespace: petstore
-  annotations:
-    # The API serves TLS itself, so the ingress re-encrypts to the HTTPS backend.
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
 spec:
+  # TLS terminates here; the web gateway (HTTP) serves the SPA and proxies
+  # /graphql + /pictures on to the API, so the whole system is same-origin.
   ingressClassName: nginx
   tls:
     - hosts: ["petstore.local"]
@@ -19,6 +18,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: petstore-api
+                name: petstore-web
                 port:
-                  number: 8443
+                  number: 80

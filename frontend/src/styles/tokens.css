@@ -1,0 +1,52 @@
+/* Design tokens — Robotic Crew identity fused with pet-commerce warmth (see docs/DESIGN.md).
+   Colors are space-separated RGB channels so Tailwind can apply opacity.
+
+   Accessibility rule (encoded here):
+   - `primary` (vivid brand orange) is for FILLS, BORDERS, ICONS, and LARGE display text only.
+   - `accent` is the AA-safe orange for orange-colored TEXT at body/label sizes on the page.
+   - `primary-fg` (ink) is the text color ON an orange fill — dark-on-orange clears AA (~7:1). */
+:root {
+  /* Surfaces — warm cream neutrals (petstore warmth, not clinical gray) */
+  --color-bg: 251 248 244; /* #FBF8F4 warm page  */
+  --color-card: 255 255 255; /* cards/surfaces     */
+  --color-border: 233 227 220; /* #E9E3DC warm hairline */
+  --color-fg: 22 33 42; /* charcoal body text */
+  --color-muted: 107 100 94; /* #6B645E warm gray  */
+
+  /* Dark chrome (header/footer/feature bands) — same in both themes */
+  --color-ink: 22 33 42; /* RC navy/charcoal */
+  --color-ink-fg: 237 242 245; /* text on ink      */
+
+  /* Brand orange */
+  --color-primary: 242 101 34; /* #F26522 — fills/borders/large text   */
+  --color-primary-strong: 217 85 26; /* #D9551A — hover/pressed fills        */
+  --color-primary-fg: 22 33 42; /* ink text on an orange fill (AA ~7:1) */
+  --color-accent: 194 65 12; /* #C2410C — AA orange TEXT on light    */
+
+  /* Status */
+  --color-danger: 198 40 28; /* AA-capable on light */
+  --color-success: 22 121 67;
+
+  /* Shape */
+  --radius: 0.5rem;
+  --chamfer: 14px;
+}
+
+.dark {
+  --color-bg: 14 23 30; /* #0E171E */
+  --color-card: 22 33 42; /* #16212A */
+  --color-border: 42 55 66; /* #2A3742 */
+  --color-fg: 231 236 239;
+  --color-muted: 149 163 172;
+
+  --color-ink: 11 18 24; /* slightly deeper than cards */
+  --color-ink-fg: 237 242 245;
+
+  --color-primary: 242 101 34;
+  --color-primary-strong: 255 122 56; /* lighten on dark */
+  --color-primary-fg: 22 33 42;
+  --color-accent: 251 138 76; /* bright orange text reads well on dark */
+
+  --color-danger: 248 113 113;
+  --color-success: 74 222 128;
+}

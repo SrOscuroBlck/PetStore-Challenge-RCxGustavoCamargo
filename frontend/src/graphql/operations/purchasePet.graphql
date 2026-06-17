@@ -1,0 +1,8 @@
+# Customer-only. Instantly buys one available pet; returns it as SOLD.
+# Idempotent for the same buyer. UNAVAILABLE if already taken/removed.
+mutation PurchasePet($petId: ID!) {
+  purchasePet(petId: $petId) {
+    id
+    status
+  }
+}

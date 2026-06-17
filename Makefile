@@ -97,6 +97,7 @@ migrate-lint: ## Lint migrations for unsafe changes
 
 K8S_NS ?= petstore
 K8S_IMAGE ?= petstore-api:dev
+WEB_IMAGE ?= petstore-web:dev
 K8S_DIR := deploy/k8s
 # Must match demoStoreID in cmd/seed; the seeder pins the demo store to this id.
 DEMO_STORE_ID := 11111111-1111-1111-1111-111111111111
@@ -111,6 +112,8 @@ k8s-up: ## Bring up the full stack on Minikube (single command)
 	minikube addons enable ingress >/dev/null; \
 	echo ">> building API image into minikube"; \
 	minikube image build -t $(K8S_IMAGE) -f deploy/docker/Dockerfile .; \
+	echo ">> building web (frontend) image into minikube"; \
+	minikube image build -t $(WEB_IMAGE) frontend; \
 	echo ">> applying namespace + config"; \
 	kubectl apply -f $(K8S_DIR)/namespace.yaml -f $(K8S_DIR)/config.yaml; \
 	echo ">> creating purpose-scoped secrets (values never committed) and migrations configmap"; \
@@ -127,6 +130,9 @@ k8s-up: ## Bring up the full stack on Minikube (single command)
 	  kubectl -n $(K8S_NS) create secret generic petstore-minio-secret \
 	    --from-literal=MINIO_ACCESS_KEY=minioadmin \
 	    --from-literal=MINIO_SECRET_KEY=minioadmin; \
+	kubectl -n $(K8S_NS) get secret petstore-web-secret >/dev/null 2>&1 || \
+	  kubectl -n $(K8S_NS) create secret generic petstore-web-secret \
+	    --from-literal=AMBIENT_AUTH="Basic $$(printf 'customer@petstore.local:demo-password' | base64)"; \
 	kubectl -n $(K8S_NS) get secret petstore-tls >/dev/null 2>&1 || { \
 	  echo ">> generating TLS cert (localhost + petstore.local)"; \
 	  $(GO) run ./cmd/gencert; \
@@ -137,22 +143,26 @@ k8s-up: ## Bring up the full stack on Minikube (single command)
 	kubectl apply -f $(K8S_DIR)/postgres.yaml -f $(K8S_DIR)/redis.yaml -f $(K8S_DIR)/minio.yaml; \
 	kubectl -n $(K8S_NS) rollout status deploy/postgres --timeout=180s; \
 	kubectl -n $(K8S_NS) rollout status deploy/minio --timeout=180s; \
-	echo ">> deploying API (runs migrations first) + ingress"; \
-	kubectl apply -f $(K8S_DIR)/api.yaml -f $(K8S_DIR)/ingress.yaml; \
+	echo ">> deploying API (runs migrations first)"; \
+	kubectl apply -f $(K8S_DIR)/api.yaml; \
 	kubectl -n $(K8S_NS) rollout status deploy/petstore-api --timeout=180s; \
 	echo ">> seeding demo accounts and catalog"; \
 	kubectl -n $(K8S_NS) delete job petstore-seed --ignore-not-found; \
 	kubectl apply -f $(K8S_DIR)/seed-job.yaml; \
 	kubectl -n $(K8S_NS) wait --for=condition=complete job/petstore-seed --timeout=120s; \
+	echo ">> deploying web storefront + ingress"; \
+	kubectl apply -f $(K8S_DIR)/web.yaml -f $(K8S_DIR)/ingress.yaml; \
+	kubectl -n $(K8S_NS) rollout status deploy/petstore-web --timeout=180s; \
 	echo ""; \
-	echo "Stack is up. Reach the API over TLS from your host:"; \
-	echo "  kubectl port-forward -n $(K8S_NS) svc/petstore-api 8443:8443   # leave running"; \
+	echo "Stack is up. Open the customer storefront:"; \
+	echo "  kubectl port-forward -n $(K8S_NS) svc/petstore-web 8080:80   # leave running"; \
+	echo "  then open http://localhost:8080/store/$(DEMO_STORE_ID)"; \
+	echo "  (or, via ingress: add 'petstore.local' to /etc/hosts -> minikube ip, browse https://petstore.local/store/$(DEMO_STORE_ID))"; \
 	echo ""; \
-	echo "Demo store id: $(DEMO_STORE_ID)"; \
-	echo "  Customer storefront: open /store/$(DEMO_STORE_ID) in the frontend"; \
-	echo "  Health:   curl -k https://localhost:8443/healthz"; \
-	echo "  Catalog:  curl -k -u customer@petstore.local:demo-password -H 'Content-Type: application/json' \\"; \
-	echo "            -d '{\"query\":\"{ availablePets(storeId:\\\"$(DEMO_STORE_ID)\\\", first:12){ edges{ node{ name species pictureUrl } } pageInfo{ hasNextPage endCursor } } }\"}' https://localhost:8443/graphql"
+	echo "Direct API access (merchant ops / curl) over TLS:"; \
+	echo "  kubectl port-forward -n $(K8S_NS) svc/petstore-api 8443:8443"; \
+	echo "  curl -k https://localhost:8443/healthz"; \
+	echo "  Demo store id: $(DEMO_STORE_ID)"
 
 .PHONY: k8s-down
 k8s-down: ## Tear down the stack (keeps the Minikube VM)
