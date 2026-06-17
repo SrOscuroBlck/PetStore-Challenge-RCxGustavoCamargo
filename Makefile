@@ -47,6 +47,10 @@ build: $(LOCALBIN) ## Build the server binary into ./bin
 run: ## Run the server locally
 	$(GO) run ./cmd/server
 
+.PHONY: tls-certs
+tls-certs: ## Generate a local self-signed TLS cert into ./certs (dev only)
+	$(GO) run ./cmd/gencert
+
 .PHONY: fmt
 fmt: ## Format code (gofmt + goimports)
 	gofmt -w .

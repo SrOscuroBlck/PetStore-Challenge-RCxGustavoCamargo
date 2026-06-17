@@ -118,6 +118,9 @@ func TestPetRepository_CreateAndGet(t *testing.T) {
 	if string(raw.BreederEmailEncrypted) == pet.BreederEmail {
 		t.Fatal("breeder email is stored in plaintext")
 	}
+	if string(raw.BreederNameEncrypted) == pet.BreederName {
+		t.Fatal("breeder name is stored in plaintext")
+	}
 }
 
 func TestPetRepository_GetByID_NotFound(t *testing.T) {

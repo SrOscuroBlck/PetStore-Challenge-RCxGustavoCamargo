@@ -88,7 +88,7 @@ func run() error {
 		Listing:      listingService,
 		Purchase:     purchaseService,
 		PictureStore: pictureStore,
-	}, logger)
+	}, logger, cfg.GraphQLIntrospection)
 
 	srv := server.New(cfg, logger, authenticator, graphqlHandler)
 	return srv.Run(ctx)

@@ -38,6 +38,12 @@ func PresentError(ctx context.Context, err error) *gqlerror.Error {
 		return gqlErr
 	}
 
+	// gqlgen extensions (e.g. the complexity limit) tag the error with a stable
+	// code before it reaches here. Preserve it rather than masking it.
+	if code, ok := gqlErr.Extensions["code"].(string); ok && code != "" {
+		return gqlErr
+	}
+
 	gqlErr.Extensions["code"] = "INTERNAL"
 	gqlErr.Message = "internal server error"
 	return gqlErr

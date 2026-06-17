@@ -1,6 +1,6 @@
 # API Reference
 
-GraphQL is served at `POST /graphql` over HTTP Basic auth (every request must carry valid credentials). Identity and store scope are derived from the authenticated principal — no operation accepts a `storeId` argument. Errors carry a stable machine-readable `code` in `extensions`:
+GraphQL is served at `POST /graphql` over **TLS** (plaintext HTTP is refused) behind HTTP Basic auth (every request must carry valid credentials). Identity and store scope are derived from the authenticated principal — no operation accepts a `storeId` argument. Errors carry a stable machine-readable `code` in `extensions`:
 
 | code | meaning |
 |---|---|
@@ -12,9 +12,13 @@ GraphQL is served at `POST /graphql` over HTTP Basic auth (every request must ca
 | `UNAVAILABLE` | pet is no longer available |
 | `UNSUPPORTED_MEDIA_TYPE` | picture is not JPEG/PNG/WebP |
 | `PAYLOAD_TOO_LARGE` | picture exceeds the size cap |
+| `COMPLEXITY_LIMIT_EXCEEDED` | the query is too expensive (e.g. a `first` far above the page cap) |
+| `GRAPHQL_VALIDATION_FAILED` | the query is malformed or selects unknown fields |
 | `INTERNAL` | unexpected server error |
 
 List queries are Relay cursor connections (`first`/`after` → `edges { node cursor }`, `pageInfo { hasNextPage endCursor }`), keyset-ordered. `pictureUrl` is a short-lived presigned URL resolved on read.
+
+**Hardening:** schema introspection is disabled outside development (`GRAPHQL_INTROSPECTION`), every query is bounded by a complexity limit, and picture uploads are size-capped.
 
 ---
 
