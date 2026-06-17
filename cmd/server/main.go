@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -90,6 +91,11 @@ func run() error {
 		PictureStore: pictureStore,
 	}, logger, cfg.GraphQLIntrospection)
 
-	srv := server.New(cfg, logger, authenticator, graphqlHandler)
+	var playgroundHandler http.Handler
+	if cfg.GraphQLIntrospection {
+		playgroundHandler = graph.NewPlaygroundHandler("/graphql")
+	}
+
+	srv := server.New(cfg, logger, authenticator, graphqlHandler, playgroundHandler)
 	return srv.Run(ctx)
 }
