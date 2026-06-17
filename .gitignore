@@ -29,3 +29,6 @@ coverage.html
 
 # OS
 .DS_Store
+
+# Editor / IDE
+.idea/

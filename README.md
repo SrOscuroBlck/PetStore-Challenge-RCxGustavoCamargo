@@ -91,12 +91,15 @@ storefront URL. A one-shot Job seeds demo accounts and a catalog of pets:
 
 | Role | Email | Password |
 |---|---|---|
-| Merchant (owns a "Demo Store") | `merchant@petstore.local` | `demo-password` |
+| Merchant (owns "Demo Store") | `merchant@petstore.local` | `demo-password` |
+| Merchant (owns "Second Store") | `merchant2@petstore.local` | `demo-password` |
 | Customer | `customer@petstore.local` | `demo-password` |
 | Customer (second shopper) | `customer2@petstore.local` | `demo-password` |
 
-The second customer lets you exercise the purchase/checkout race: buy a pet as one shopper and watch
-the other get a human-readable `UNAVAILABLE` error.
+The **second customer** lets you exercise the purchase/checkout race (buy a pet as one shopper and
+watch the other get a human-readable `UNAVAILABLE` error). The **second merchant** owns a separate
+store (`22222222-2222-2222-2222-222222222222`, stocked with its own pets) so you can demonstrate
+store isolation: merchant 2 sees only its own pets and gets `NOT_FOUND` on merchant 1's.
 
 
 The store is pre-filled with a catalog of cats, dogs, and frogs (with real bundled photos —
