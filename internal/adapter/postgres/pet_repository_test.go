@@ -281,7 +281,7 @@ func TestPetRepository_ListAvailable_Pagination(t *testing.T) {
 	seen := map[uuid.UUID]bool{}
 	cursor := ""
 	for pages := 0; pages < total+1; pages++ {
-		pets, next, err := repo.ListAvailableByStore(ctx, storeID, 2, cursor)
+		pets, next, err := repo.ListAvailableByStore(ctx, storeID, nil, 2, cursor)
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}

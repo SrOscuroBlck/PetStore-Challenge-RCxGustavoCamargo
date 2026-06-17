@@ -82,11 +82,12 @@ type spyCache struct {
 	invalidated []uuid.UUID
 }
 
-func (s *spyCache) GetAvailable(context.Context, uuid.UUID, int, string) (domain.CatalogPage, bool) {
+func (s *spyCache) GetAvailable(context.Context, uuid.UUID, *domain.Species, int, string) (domain.CatalogPage, bool) {
 	return domain.CatalogPage{}, false
 }
 
-func (s *spyCache) SetAvailable(context.Context, uuid.UUID, int, string, domain.CatalogPage) {}
+func (s *spyCache) SetAvailable(context.Context, uuid.UUID, *domain.Species, int, string, domain.CatalogPage) {
+}
 
 func (s *spyCache) InvalidateStore(_ context.Context, storeID uuid.UUID) {
 	s.mu.Lock()

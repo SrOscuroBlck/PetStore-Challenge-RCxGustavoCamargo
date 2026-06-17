@@ -130,7 +130,7 @@ func (r *queryResolver) UnsoldPets(ctx context.Context, first *int, after *strin
 }
 
 // AvailablePets is the resolver for the availablePets field.
-func (r *queryResolver) AvailablePets(ctx context.Context, storeID string, first *int, after *string) (*generated.PublicPetConnection, error) {
+func (r *queryResolver) AvailablePets(ctx context.Context, storeID string, species *generated.Species, first *int, after *string) (*generated.PublicPetConnection, error) {
 	if _, err := auth.RequireCustomer(ctx); err != nil {
 		return nil, err
 	}
@@ -138,7 +138,12 @@ func (r *queryResolver) AvailablePets(ctx context.Context, storeID string, first
 	if err != nil {
 		return nil, &domain.ValidationError{Field: "storeId", Msg: "is not a valid identifier"}
 	}
-	pets, nextCursor, err := r.Listing.UnsoldPets(ctx, store, clampFirst(first), cursorOrEmpty(after))
+	var speciesFilter *domain.Species
+	if species != nil {
+		s := domain.Species(*species)
+		speciesFilter = &s
+	}
+	pets, nextCursor, err := r.Listing.AvailablePets(ctx, store, speciesFilter, clampFirst(first), cursorOrEmpty(after))
 	if err != nil {
 		return nil, err
 	}

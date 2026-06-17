@@ -74,6 +74,61 @@ func availableIDs(t *testing.T, c *client.Client, storeID uuid.UUID) []string {
 	return ids
 }
 
+func createPetSpecies(t *testing.T, storeID uuid.UUID, species string) string {
+	t.Helper()
+	merchant := client.New(handlerAs(ptr(merchantIdentity(storeID))))
+	in := createInput(t)
+	in["species"] = species
+	var out struct {
+		CreatePet struct {
+			ID, Status, CreatedAt, PictureURL string
+		}
+	}
+	merchant.MustPost(createPetMutation, &out, client.Var("input", in), client.WithFiles())
+	return out.CreatePet.ID
+}
+
+func availableSpecies(t *testing.T, c *client.Client, storeID uuid.UUID, species string) []string {
+	t.Helper()
+	const query = `query($storeId: ID!, $species: Species) {
+  availablePets(storeId: $storeId, species: $species, first: 10) { edges { node { id species } } }
+}`
+	var out struct {
+		AvailablePets struct {
+			Edges []struct {
+				Node struct{ ID, Species string }
+			}
+		}
+	}
+	c.MustPost(query, &out, client.Var("storeId", storeID.String()), client.Var("species", species))
+	ids := make([]string, 0, len(out.AvailablePets.Edges))
+	for _, edge := range out.AvailablePets.Edges {
+		if edge.Node.Species != species {
+			t.Fatalf("species filter %s returned a %s pet", species, edge.Node.Species)
+		}
+		ids = append(ids, edge.Node.ID)
+	}
+	return ids
+}
+
+func TestE2E_AvailablePets_FiltersBySpecies(t *testing.T) {
+	requireInfra(t)
+	storeID := seedStore(t)
+	dog := createPetSpecies(t, storeID, "DOG")
+	createPetSpecies(t, storeID, "CAT")
+	customer := client.New(handlerAs(ptr(customerIdentity(t))))
+
+	if dogs := availableSpecies(t, customer, storeID, "DOG"); len(dogs) != 1 || dogs[0] != dog {
+		t.Fatalf("species=DOG should return only the dog, got %v", dogs)
+	}
+	if all := availableIDs(t, customer, storeID); len(all) != 2 {
+		t.Fatalf("no species filter should return both pets, got %d", len(all))
+	}
+	if frogs := availableSpecies(t, customer, storeID, "FROG"); len(frogs) != 0 {
+		t.Fatalf("species=FROG with no frogs should be an empty connection, got %v", frogs)
+	}
+}
+
 func TestE2E_AvailablePets_ShowsOnlyAvailable(t *testing.T) {
 	requireInfra(t)
 	storeID := seedStore(t)

@@ -74,7 +74,7 @@ func NewPlaygroundHandler(endpoint string) http.Handler {
 // the resolver clamps it) so an abusive `first` is expensive.
 func executableConfig(resolver *Resolver) generated.Config {
 	cfg := generated.Config{Resolvers: resolver}
-	cfg.Complexity.Query.AvailablePets = func(childComplexity int, _ string, first *int, _ *string) int {
+	cfg.Complexity.Query.AvailablePets = func(childComplexity int, _ string, _ *generated.Species, first *int, _ *string) int {
 		return complexityFirst(first) * childComplexity
 	}
 	cfg.Complexity.Query.UnsoldPets = func(childComplexity int, first *int, _ *string) int {

@@ -94,5 +94,5 @@ type Mutation {
 type Query {
   soldPets(from: Time!, to: Time!, first: Int, after: String): PetConnection!
   unsoldPets(first: Int, after: String): PetConnection!
-  availablePets(storeId: ID!, first: Int, after: String): PublicPetConnection!
+  availablePets(storeId: ID!, species: Species, first: Int, after: String): PublicPetConnection!
 }

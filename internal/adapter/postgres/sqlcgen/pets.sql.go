@@ -112,16 +112,18 @@ const listAvailableByStore = `-- name: ListAvailableByStore :many
 SELECT id, store_id, name, species, age_years, description, breeder_name_encrypted, breeder_email_encrypted, picture_object_key, status, created_at, sold_at, sold_by_customer_id, removed_at FROM pets
  WHERE store_id = $1
    AND status = 'AVAILABLE'
+   AND ($2::pet_species IS NULL OR species = $2::pet_species)
    AND (
-     created_at > $2
-     OR (created_at = $2 AND id > $3)
+     created_at > $3
+     OR (created_at = $3 AND id > $4)
    )
  ORDER BY created_at, id
- LIMIT $4
+ LIMIT $5
 `
 
 type ListAvailableByStoreParams struct {
 	StoreID        uuid.UUID
+	Species        *PetSpecies
 	AfterCreatedAt time.Time
 	AfterID        uuid.UUID
 	PageLimit      int32
@@ -130,6 +132,7 @@ type ListAvailableByStoreParams struct {
 func (q *Queries) ListAvailableByStore(ctx context.Context, arg ListAvailableByStoreParams) ([]Pet, error) {
 	rows, err := q.db.Query(ctx, listAvailableByStore,
 		arg.StoreID,
+		arg.Species,
 		arg.AfterCreatedAt,
 		arg.AfterID,
 		arg.PageLimit,

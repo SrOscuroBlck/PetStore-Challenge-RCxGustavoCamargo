@@ -87,16 +87,17 @@ query { unsoldPets(first: 20) { edges { node { id name } cursor } pageInfo { has
 All require the **customer** role. They return `PublicPet` — the same pet without breeder contact fields, so breeder PII is never exposed to customers. A purchase is race-safe: under concurrent attempts on the same pet, exactly one succeeds.
 
 ### `availablePets` (query)
-A store's not-yet-sold pets, keyset paginated by `created_at`. Customers are not store-scoped, so the store is a client argument; sold/removed pets never appear. An unknown `storeId` yields an empty connection.
+A store's not-yet-sold pets, keyset paginated by `created_at` (oldest first). Customers are not store-scoped, so the store is a client argument; sold/removed pets never appear. An unknown `storeId` yields an empty connection.
 
-- **Arguments:** `storeId: ID!`, `first: Int` (default 20, max 100), `after: String`.
+- **Arguments:** `storeId: ID!`, `species: Species` (optional filter — `CAT|DOG|FROG`; omitted/null returns all species), `first: Int` (default 20, max 100), `after: String`.
 - **Returns:** `PublicPetConnection!`.
 - **Errors:** `VALIDATION` (bad `storeId`/`after`), `UNAUTHENTICATED`, `FORBIDDEN`.
+- The species filter is applied server-side before pagination, so `first`/`after`/`pageInfo` reflect the filtered set; cursors are keyset `(created_at, id)` and stay consistent within a given filter value. A species with no available pets returns an empty connection (not an error).
 
 ```graphql
-query($storeId: ID!) {
-  availablePets(storeId: $storeId, first: 20) {
-    edges { node { id name pictureUrl } cursor }
+query($storeId: ID!, $species: Species) {
+  availablePets(storeId: $storeId, species: $species, first: 20) {
+    edges { node { id name species pictureUrl } cursor }
     pageInfo { hasNextPage endCursor }
   }
 }

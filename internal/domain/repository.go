@@ -12,7 +12,7 @@ type PetRepository interface {
 	Create(ctx context.Context, pet Pet) error
 	GetByID(ctx context.Context, storeID, petID uuid.UUID) (Pet, error)
 	Remove(ctx context.Context, storeID, petID uuid.UUID) (Pet, error)
-	ListAvailableByStore(ctx context.Context, storeID uuid.UUID, limit int, cursor string) ([]Pet, string, error)
+	ListAvailableByStore(ctx context.Context, storeID uuid.UUID, species *Species, limit int, cursor string) ([]Pet, string, error)
 	ListSoldByStore(ctx context.Context, storeID uuid.UUID, from, to time.Time, limit int, cursor string) ([]Pet, string, error)
 	Purchase(ctx context.Context, customerID, petID uuid.UUID) (Pet, error)
 	Checkout(ctx context.Context, customerID uuid.UUID, petIDs []uuid.UUID) ([]Pet, error)
@@ -69,7 +69,7 @@ type CatalogPage struct {
 // operation that changes a store's available pets — create, remove, and a sale
 // (the purchase use case in a later issue) — must call InvalidateStore.
 type CatalogCache interface {
-	GetAvailable(ctx context.Context, storeID uuid.UUID, limit int, cursor string) (CatalogPage, bool)
-	SetAvailable(ctx context.Context, storeID uuid.UUID, limit int, cursor string, page CatalogPage)
+	GetAvailable(ctx context.Context, storeID uuid.UUID, species *Species, limit int, cursor string) (CatalogPage, bool)
+	SetAvailable(ctx context.Context, storeID uuid.UUID, species *Species, limit int, cursor string, page CatalogPage)
 	InvalidateStore(ctx context.Context, storeID uuid.UUID)
 }

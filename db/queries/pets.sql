@@ -20,6 +20,7 @@ RETURNING *;
 SELECT * FROM pets
  WHERE store_id = sqlc.arg(store_id)
    AND status = 'AVAILABLE'
+   AND (sqlc.narg(species)::pet_species IS NULL OR species = sqlc.narg(species)::pet_species)
    AND (
      created_at > sqlc.arg(after_created_at)
      OR (created_at = sqlc.arg(after_created_at) AND id > sqlc.arg(after_id))

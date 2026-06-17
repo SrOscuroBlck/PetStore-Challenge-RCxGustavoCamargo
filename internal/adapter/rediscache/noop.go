@@ -15,10 +15,11 @@ type NoOp struct{}
 
 var _ domain.CatalogCache = NoOp{}
 
-func (NoOp) GetAvailable(context.Context, uuid.UUID, int, string) (domain.CatalogPage, bool) {
+func (NoOp) GetAvailable(context.Context, uuid.UUID, *domain.Species, int, string) (domain.CatalogPage, bool) {
 	return domain.CatalogPage{}, false
 }
 
-func (NoOp) SetAvailable(context.Context, uuid.UUID, int, string, domain.CatalogPage) {}
+func (NoOp) SetAvailable(context.Context, uuid.UUID, *domain.Species, int, string, domain.CatalogPage) {
+}
 
 func (NoOp) InvalidateStore(context.Context, uuid.UUID) {}

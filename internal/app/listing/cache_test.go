@@ -21,9 +21,9 @@ type countingPetRepo struct {
 	listCalls atomic.Int64
 }
 
-func (c *countingPetRepo) ListAvailableByStore(ctx context.Context, storeID uuid.UUID, limit int, cursor string) ([]domain.Pet, string, error) {
+func (c *countingPetRepo) ListAvailableByStore(ctx context.Context, storeID uuid.UUID, species *domain.Species, limit int, cursor string) ([]domain.Pet, string, error) {
 	c.listCalls.Add(1)
-	return c.PetRepository.ListAvailableByStore(ctx, storeID, limit, cursor)
+	return c.PetRepository.ListAvailableByStore(ctx, storeID, species, limit, cursor)
 }
 
 func serviceWithSpy() (*listing.Service, *countingPetRepo) {

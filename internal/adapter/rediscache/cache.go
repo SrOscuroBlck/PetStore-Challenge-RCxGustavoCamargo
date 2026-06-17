@@ -26,12 +26,12 @@ func New(client *redis.Client, enc *crypto.Encryptor, logger *slog.Logger, ttl t
 
 var _ domain.CatalogCache = (*Cache)(nil)
 
-func (c *Cache) GetAvailable(ctx context.Context, storeID uuid.UUID, limit int, cursor string) (domain.CatalogPage, bool) {
+func (c *Cache) GetAvailable(ctx context.Context, storeID uuid.UUID, species *domain.Species, limit int, cursor string) (domain.CatalogPage, bool) {
 	generation, ok := c.generation(ctx, storeID)
 	if !ok {
 		return domain.CatalogPage{}, false
 	}
-	raw, err := c.client.Get(ctx, pageKey(storeID, generation, limit, cursor)).Bytes()
+	raw, err := c.client.Get(ctx, pageKey(storeID, generation, species, limit, cursor)).Bytes()
 	if errors.Is(err, redis.Nil) {
 		return domain.CatalogPage{}, false
 	}
@@ -52,7 +52,7 @@ func (c *Cache) GetAvailable(ctx context.Context, storeID uuid.UUID, limit int, 
 	return page, true
 }
 
-func (c *Cache) SetAvailable(ctx context.Context, storeID uuid.UUID, limit int, cursor string, page domain.CatalogPage) {
+func (c *Cache) SetAvailable(ctx context.Context, storeID uuid.UUID, species *domain.Species, limit int, cursor string, page domain.CatalogPage) {
 	generation, ok := c.generation(ctx, storeID)
 	if !ok {
 		return
@@ -67,7 +67,7 @@ func (c *Cache) SetAvailable(ctx context.Context, storeID uuid.UUID, limit int, 
 		c.logger.ErrorContext(ctx, "catalog cache encrypt failed", "store_id", storeID, "error", err)
 		return
 	}
-	if err := c.client.Set(ctx, pageKey(storeID, generation, limit, cursor), ciphertext, c.ttl).Err(); err != nil {
+	if err := c.client.Set(ctx, pageKey(storeID, generation, species, limit, cursor), ciphertext, c.ttl).Err(); err != nil {
 		c.logger.WarnContext(ctx, "catalog cache write failed", "store_id", storeID, "error", err)
 	}
 }

@@ -98,18 +98,29 @@ func (s *Service) SoldPets(ctx context.Context, storeID uuid.UUID, from, to time
 	return s.pets.ListSoldByStore(ctx, storeID, from, to, limit, cursor)
 }
 
+// UnsoldPets lists a store's available pets (merchant view, unfiltered).
 func (s *Service) UnsoldPets(ctx context.Context, storeID uuid.UUID, limit int, cursor string) ([]domain.Pet, string, error) {
+	return s.availableByStore(ctx, storeID, nil, limit, cursor)
+}
+
+// AvailablePets lists a store's available pets (customer view), optionally
+// filtered to a single species; a nil species returns every available pet.
+func (s *Service) AvailablePets(ctx context.Context, storeID uuid.UUID, species *domain.Species, limit int, cursor string) ([]domain.Pet, string, error) {
+	return s.availableByStore(ctx, storeID, species, limit, cursor)
+}
+
+func (s *Service) availableByStore(ctx context.Context, storeID uuid.UUID, species *domain.Species, limit int, cursor string) ([]domain.Pet, string, error) {
 	if err := validateCursor(cursor); err != nil {
 		return nil, "", err
 	}
-	if page, ok := s.cache.GetAvailable(ctx, storeID, limit, cursor); ok {
+	if page, ok := s.cache.GetAvailable(ctx, storeID, species, limit, cursor); ok {
 		return page.Pets, page.NextCursor, nil
 	}
-	pets, nextCursor, err := s.pets.ListAvailableByStore(ctx, storeID, limit, cursor)
+	pets, nextCursor, err := s.pets.ListAvailableByStore(ctx, storeID, species, limit, cursor)
 	if err != nil {
 		return nil, "", err
 	}
-	s.cache.SetAvailable(ctx, storeID, limit, cursor, domain.CatalogPage{Pets: pets, NextCursor: nextCursor})
+	s.cache.SetAvailable(ctx, storeID, species, limit, cursor, domain.CatalogPage{Pets: pets, NextCursor: nextCursor})
 	return pets, nextCursor, nil
 }
 

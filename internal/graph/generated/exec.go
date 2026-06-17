@@ -97,7 +97,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AvailablePets func(childComplexity int, storeID string, first *int, after *string) int
+		AvailablePets func(childComplexity int, storeID string, species *Species, first *int, after *string) int
 		SoldPets      func(childComplexity int, from time.Time, to time.Time, first *int, after *string) int
 		UnsoldPets    func(childComplexity int, first *int, after *string) int
 	}
@@ -122,7 +122,7 @@ type PublicPetResolver interface {
 type QueryResolver interface {
 	SoldPets(ctx context.Context, from time.Time, to time.Time, first *int, after *string) (*PetConnection, error)
 	UnsoldPets(ctx context.Context, first *int, after *string) (*PetConnection, error)
-	AvailablePets(ctx context.Context, storeID string, first *int, after *string) (*PublicPetConnection, error)
+	AvailablePets(ctx context.Context, storeID string, species *Species, first *int, after *string) (*PublicPetConnection, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -385,7 +385,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.AvailablePets(childComplexity, args["storeId"].(string), args["first"].(*int), args["after"].(*string)), true
+		return e.ComplexityRoot.Query.AvailablePets(childComplexity, args["storeId"].(string), args["species"].(*Species), args["first"].(*int), args["after"].(*string)), true
 
 	case "Query.soldPets":
 		if e.ComplexityRoot.Query.SoldPets == nil {
@@ -590,7 +590,7 @@ type Mutation {
 type Query {
   soldPets(from: Time!, to: Time!, first: Int, after: String): PetConnection!
   unsoldPets(first: Int, after: String): PetConnection!
-  availablePets(storeId: ID!, first: Int, after: String): PublicPetConnection!
+  availablePets(storeId: ID!, species: Species, first: Int, after: String): PublicPetConnection!
 }
 `, BuiltIn: false},
 }
@@ -899,22 +899,30 @@ func (ec *executionContext) field_Query_availablePets_args(ctx context.Context, 
 		return nil, err
 	}
 	args["storeId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "species",
+		func(ctx context.Context, v any) (*Species, error) {
+			return ec.unmarshalOSpecies2ᚖroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐSpecies(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["species"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "first",
 		func(ctx context.Context, v any) (*int, error) {
 			return ec.unmarshalOInt2ᚖint(ctx, v)
 		})
 	if err != nil {
 		return nil, err
 	}
-	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+	args["first"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "after",
 		func(ctx context.Context, v any) (*string, error) {
 			return ec.unmarshalOString2ᚖstring(ctx, v)
 		})
 	if err != nil {
 		return nil, err
 	}
-	args["after"] = arg2
+	args["after"] = arg3
 	return args, nil
 }
 
@@ -2056,7 +2064,7 @@ func (ec *executionContext) _Query_availablePets(ctx context.Context, field grap
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().AvailablePets(ctx, fc.Args["storeId"].(string), fc.Args["first"].(*int), fc.Args["after"].(*string))
+			return ec.Resolvers.Query().AvailablePets(ctx, fc.Args["storeId"].(string), fc.Args["species"].(*Species), fc.Args["first"].(*int), fc.Args["after"].(*string))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v *PublicPetConnection) graphql.Marshaler {
@@ -4805,6 +4813,22 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	_ = ctx
 	res := graphql.MarshalInt(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOSpecies2ᚖroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐSpecies(ctx context.Context, v any) (*Species, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(Species)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOSpecies2ᚖroboticCrewChallengeᚋinternalᚋgraphᚋgeneratedᚐSpecies(ctx context.Context, sel ast.SelectionSet, v *Species) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {

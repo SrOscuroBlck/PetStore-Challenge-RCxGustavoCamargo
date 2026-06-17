@@ -164,13 +164,19 @@ func (r *PetRepository) Checkout(ctx context.Context, customerID uuid.UUID, petI
 	return purchased, nil
 }
 
-func (r *PetRepository) ListAvailableByStore(ctx context.Context, storeID uuid.UUID, limit int, cursor string) ([]domain.Pet, string, error) {
+func (r *PetRepository) ListAvailableByStore(ctx context.Context, storeID uuid.UUID, species *domain.Species, limit int, cursor string) ([]domain.Pet, string, error) {
 	after, err := decodeCursor(cursor)
 	if err != nil {
 		return nil, "", err
 	}
+	var speciesFilter *sqlcgen.PetSpecies
+	if species != nil {
+		s := sqlcgen.PetSpecies(*species)
+		speciesFilter = &s
+	}
 	rows, err := r.queries.ListAvailableByStore(ctx, sqlcgen.ListAvailableByStoreParams{
 		StoreID:        storeID,
+		Species:        speciesFilter,
 		AfterCreatedAt: after.SortKey,
 		AfterID:        after.ID,
 		PageLimit:      clampInt32(limit),

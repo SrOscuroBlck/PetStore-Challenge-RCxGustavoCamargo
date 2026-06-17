@@ -4,18 +4,29 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+
+	"roboticCrewChallenge/internal/domain"
 )
 
-// emptyCursorToken stands in for the first-page cursor so a key never ends bare.
-const emptyCursorToken = "_"
+const (
+	// emptyCursorToken stands in for the first-page cursor so a key never ends bare.
+	emptyCursorToken = "_"
+	// allSpeciesToken keys the unfiltered listing so it never collides with a
+	// species-filtered page.
+	allSpeciesToken = "all"
+)
 
 func genKey(storeID uuid.UUID) string {
 	return fmt.Sprintf("catalog:%s:gen", storeID)
 }
 
-func pageKey(storeID uuid.UUID, generation int64, limit int, cursor string) string {
+func pageKey(storeID uuid.UUID, generation int64, species *domain.Species, limit int, cursor string) string {
 	if cursor == "" {
 		cursor = emptyCursorToken
 	}
-	return fmt.Sprintf("catalog:%s:g%d:l%d:c%s", storeID, generation, limit, cursor)
+	speciesToken := allSpeciesToken
+	if species != nil {
+		speciesToken = string(*species)
+	}
+	return fmt.Sprintf("catalog:%s:g%d:sp%s:l%d:c%s", storeID, generation, speciesToken, limit, cursor)
 }

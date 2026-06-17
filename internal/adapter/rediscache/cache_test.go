@@ -50,9 +50,9 @@ func TestCache_PayloadIsEncryptedAtRest(t *testing.T) {
 	storeID := uuid.New()
 	page := samplePage(t, storeID)
 
-	cache.SetAvailable(ctx, storeID, 10, "", page)
+	cache.SetAvailable(ctx, storeID, nil, 10, "", page)
 
-	raw, err := harness.RedisClient.Get(ctx, pageKey(storeID, 0, 10, "")).Bytes()
+	raw, err := harness.RedisClient.Get(ctx, pageKey(storeID, 0, nil, 10, "")).Bytes()
 	if err != nil {
 		t.Fatalf("read raw cache value: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestCache_PayloadIsEncryptedAtRest(t *testing.T) {
 		t.Fatal("breeder PII must not appear in plaintext in the cached value")
 	}
 
-	got, ok := cache.GetAvailable(ctx, storeID, 10, "")
+	got, ok := cache.GetAvailable(ctx, storeID, nil, 10, "")
 	if !ok {
 		t.Fatal("expected a cache hit")
 	}
@@ -75,14 +75,14 @@ func TestCache_InvalidateStoreOrphansOldPages(t *testing.T) {
 	cache := newCache()
 	storeID := uuid.New()
 
-	cache.SetAvailable(ctx, storeID, 10, "", samplePage(t, storeID))
-	if _, ok := cache.GetAvailable(ctx, storeID, 10, ""); !ok {
+	cache.SetAvailable(ctx, storeID, nil, 10, "", samplePage(t, storeID))
+	if _, ok := cache.GetAvailable(ctx, storeID, nil, 10, ""); !ok {
 		t.Fatal("expected a hit before invalidation")
 	}
 
 	cache.InvalidateStore(ctx, storeID)
 
-	if _, ok := cache.GetAvailable(ctx, storeID, 10, ""); ok {
+	if _, ok := cache.GetAvailable(ctx, storeID, nil, 10, ""); ok {
 		t.Fatal("expected a miss after invalidation (generation advanced)")
 	}
 }
@@ -90,7 +90,7 @@ func TestCache_InvalidateStoreOrphansOldPages(t *testing.T) {
 func TestCache_ColdStoreMisses(t *testing.T) {
 	requireRedis(t)
 	cache := newCache()
-	if _, ok := cache.GetAvailable(context.Background(), uuid.New(), 10, ""); ok {
+	if _, ok := cache.GetAvailable(context.Background(), uuid.New(), nil, 10, ""); ok {
 		t.Fatal("a cold store must miss")
 	}
 }
@@ -108,10 +108,10 @@ func TestCache_NonFatalWhenRedisUnreachable(t *testing.T) {
 	dead := New(redis.NewClient(&redis.Options{Addr: "127.0.0.1:1"}), enc, discardLogger, time.Minute)
 	storeID := uuid.New()
 
-	if _, ok := dead.GetAvailable(ctx, storeID, 10, ""); ok {
+	if _, ok := dead.GetAvailable(ctx, storeID, nil, 10, ""); ok {
 		t.Fatal("a dead client must report a miss, not a hit")
 	}
 	// Writes and invalidation must not panic against a dead client.
-	dead.SetAvailable(ctx, storeID, 10, "", samplePage(t, storeID))
+	dead.SetAvailable(ctx, storeID, nil, 10, "", samplePage(t, storeID))
 	dead.InvalidateStore(ctx, storeID)
 }
