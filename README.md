@@ -83,12 +83,24 @@ make k8s-up      # one command: start minikube, build the image, apply manifests
 cluster, applies the manifests in [`deploy/k8s/`](deploy/k8s/), creates the Secrets and the
 migrations ConfigMap (secret values are generated at deploy time, never committed), brings up
 Postgres/Redis/MinIO, then rolls out the API. **Migrations run automatically as an init container
-before the API serves traffic.** A one-shot Job then seeds demo accounts:
+before the API serves traffic.** A one-shot Job then seeds demo accounts and a catalog of pets:
 
 | Role | Email | Password |
 |---|---|---|
 | Merchant (owns a "Demo Store") | `merchant@petstore.local` | `demo-password` |
 | Customer | `customer@petstore.local` | `demo-password` |
+| Customer (second shopper) | `customer2@petstore.local` | `demo-password` |
+
+The second customer lets you exercise the purchase/checkout race: buy a pet as one shopper and watch
+the other get a human-readable `UNAVAILABLE` error.
+
+
+The store is pre-filled with a catalog of cats, dogs, and frogs (with real bundled photos —
+see [`cmd/seed/assets/CREDITS.md`](cmd/seed/assets/CREDITS.md)), so the customer storefront is
+browsable immediately. The demo store id is fixed —
+**`11111111-1111-1111-1111-111111111111`** — so the customer site opens at
+`/store/11111111-1111-1111-1111-111111111111`. `make k8s-up` also prints it at the end. Seeding is
+idempotent: re-running leaves existing demo data untouched.
 
 **Reach the API over TLS** from your host (the API serves HTTPS only):
 

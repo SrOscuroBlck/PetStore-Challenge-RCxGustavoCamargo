@@ -35,14 +35,13 @@ spec:
           image: petstore-api:dev
           imagePullPolicy: IfNotPresent
           command: ["/seed"]
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: petstore-api-secret
-                  key: DATABASE_URL
-            - name: PII_ENCRYPTION_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: petstore-api-secret
-                  key: PII_ENCRYPTION_KEY
+          # DATABASE_URL + PII_ENCRYPTION_KEY from the api secret; MINIO_* (endpoint
+          # and bucket from config, credentials from the minio secret) so the seeder
+          # uploads pet pictures the same way the API does.
+          envFrom:
+            - configMapRef:
+                name: petstore-config
+            - secretRef:
+                name: petstore-api-secret
+            - secretRef:
+                name: petstore-minio-secret

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -162,6 +163,17 @@ func (r *PetRepository) Checkout(ctx context.Context, customerID uuid.UUID, petI
 		return nil, err
 	}
 	return purchased, nil
+}
+
+// CountByStore counts every pet in a store regardless of status. The seeder uses
+// it to decide whether the demo catalog has already been created, so re-running is
+// safe even after pets have been sold or removed.
+func (r *PetRepository) CountByStore(ctx context.Context, storeID uuid.UUID) (int64, error) {
+	count, err := r.queries.CountPetsByStore(ctx, storeID)
+	if err != nil {
+		return 0, fmt.Errorf("count pets for store %s: %w", storeID, err)
+	}
+	return count, nil
 }
 
 func (r *PetRepository) ListAvailableByStore(ctx context.Context, storeID uuid.UUID, species *domain.Species, limit int, cursor string) ([]domain.Pet, string, error) {

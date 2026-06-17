@@ -13,6 +13,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countPetsByStore = `-- name: CountPetsByStore :one
+SELECT count(*) FROM pets WHERE store_id = $1
+`
+
+func (q *Queries) CountPetsByStore(ctx context.Context, storeID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countPetsByStore, storeID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createPet = `-- name: CreatePet :exec
 INSERT INTO pets (
     id, store_id, name, species, age_years, description,
