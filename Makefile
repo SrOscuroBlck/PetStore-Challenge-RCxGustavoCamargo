@@ -94,3 +94,66 @@ migrate-up: ## Apply pending migrations
 .PHONY: migrate-lint
 migrate-lint: ## Lint migrations for unsafe changes
 	@if [ -f atlas.hcl ]; then atlas migrate lint --env local --latest 1; else echo "atlas.hcl not present yet — added in the data-layer milestone"; fi
+
+K8S_NS ?= petstore
+K8S_IMAGE ?= petstore-api:dev
+K8S_DIR := deploy/k8s
+
+.PHONY: k8s-up
+k8s-up: ## Bring up the full stack on Minikube (single command)
+	@set -euo pipefail; \
+	command -v minikube >/dev/null || { echo "minikube not found"; exit 1; }; \
+	command -v kubectl >/dev/null || { echo "kubectl not found"; exit 1; }; \
+	minikube status >/dev/null 2>&1 || minikube start; \
+	echo ">> enabling ingress addon"; \
+	minikube addons enable ingress >/dev/null; \
+	echo ">> building API image into minikube"; \
+	minikube image build -t $(K8S_IMAGE) -f deploy/docker/Dockerfile .; \
+	echo ">> applying namespace + config"; \
+	kubectl apply -f $(K8S_DIR)/namespace.yaml -f $(K8S_DIR)/config.yaml; \
+	echo ">> creating purpose-scoped secrets (values never committed) and migrations configmap"; \
+	kubectl -n $(K8S_NS) get secret petstore-api-secret >/dev/null 2>&1 || \
+	  kubectl -n $(K8S_NS) create secret generic petstore-api-secret \
+	    --from-literal=DATABASE_URL='postgres://petstore:petstore@postgres:5432/petstore?sslmode=disable' \
+	    --from-literal=PII_ENCRYPTION_KEY="$$(openssl rand -base64 32)"; \
+	kubectl -n $(K8S_NS) get secret petstore-postgres-secret >/dev/null 2>&1 || \
+	  kubectl -n $(K8S_NS) create secret generic petstore-postgres-secret \
+	    --from-literal=POSTGRES_USER=petstore \
+	    --from-literal=POSTGRES_PASSWORD=petstore \
+	    --from-literal=POSTGRES_DB=petstore; \
+	kubectl -n $(K8S_NS) get secret petstore-minio-secret >/dev/null 2>&1 || \
+	  kubectl -n $(K8S_NS) create secret generic petstore-minio-secret \
+	    --from-literal=MINIO_ACCESS_KEY=minioadmin \
+	    --from-literal=MINIO_SECRET_KEY=minioadmin; \
+	kubectl -n $(K8S_NS) get secret petstore-tls >/dev/null 2>&1 || { \
+	  echo ">> generating TLS cert (localhost + petstore.local)"; \
+	  $(GO) run ./cmd/gencert; \
+	  kubectl -n $(K8S_NS) create secret tls petstore-tls --cert=certs/cert.pem --key=certs/key.pem; }; \
+	kubectl -n $(K8S_NS) delete configmap petstore-migrations --ignore-not-found; \
+	kubectl -n $(K8S_NS) create configmap petstore-migrations --from-file=db/migrations; \
+	echo ">> starting Postgres, Redis, MinIO"; \
+	kubectl apply -f $(K8S_DIR)/postgres.yaml -f $(K8S_DIR)/redis.yaml -f $(K8S_DIR)/minio.yaml; \
+	kubectl -n $(K8S_NS) rollout status deploy/postgres --timeout=180s; \
+	kubectl -n $(K8S_NS) rollout status deploy/minio --timeout=180s; \
+	echo ">> deploying API (runs migrations first) + ingress"; \
+	kubectl apply -f $(K8S_DIR)/api.yaml -f $(K8S_DIR)/ingress.yaml; \
+	kubectl -n $(K8S_NS) rollout status deploy/petstore-api --timeout=180s; \
+	echo ">> seeding demo accounts"; \
+	kubectl -n $(K8S_NS) delete job petstore-seed --ignore-not-found; \
+	kubectl apply -f $(K8S_DIR)/seed-job.yaml; \
+	kubectl -n $(K8S_NS) wait --for=condition=complete job/petstore-seed --timeout=120s; \
+	echo ""; \
+	echo "Stack is up. Reach the API over TLS from your host:"; \
+	echo "  kubectl port-forward -n $(K8S_NS) svc/petstore-api 8443:8443"; \
+	echo "Then:"; \
+	echo "  curl -k https://localhost:8443/healthz"; \
+	echo "  curl -k -u merchant@petstore.local:demo-password -H 'Content-Type: application/json' \\"; \
+	echo "       -d '{\"query\":\"{ unsoldPets(first:5){ edges{ node{ id name } } } }\"}' https://localhost:8443/graphql"
+
+.PHONY: k8s-down
+k8s-down: ## Tear down the stack (keeps the Minikube VM)
+	kubectl delete namespace $(K8S_NS) --ignore-not-found
+
+.PHONY: logs
+logs: ## Tail the API logs
+	kubectl -n $(K8S_NS) logs -f deploy/petstore-api -c api

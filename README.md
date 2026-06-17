@@ -67,6 +67,60 @@ variables currently in use (more are added as features that need them land).
 
 ---
 
+## Run on Minikube (full stack)
+
+Runs the entire system — Postgres, Redis, MinIO, database migrations, and the API — on local
+Kubernetes via Minikube. Each component is its own Deployment + Service; the API talks to them
+over in-cluster DNS. Requires **Docker** (running), **minikube**, **kubectl**, **openssl**, and Go 1.25.
+
+```bash
+make k8s-up      # one command: start minikube, build the image, apply manifests,
+                 # run migrations, and seed demo accounts
+```
+
+`make k8s-up` starts Minikube (if needed), enables the ingress addon, builds the API image into the
+cluster, applies the manifests in [`deploy/k8s/`](deploy/k8s/), creates the Secrets and the
+migrations ConfigMap (secret values are generated at deploy time, never committed), brings up
+Postgres/Redis/MinIO, then rolls out the API. **Migrations run automatically as an init container
+before the API serves traffic.** A one-shot Job then seeds demo accounts:
+
+| Role | Email | Password |
+|---|---|---|
+| Merchant (owns a "Demo Store") | `merchant@petstore.local` | `demo-password` |
+| Customer | `customer@petstore.local` | `demo-password` |
+
+**Reach the API over TLS** from your host (the API serves HTTPS only):
+
+```bash
+kubectl port-forward -n petstore svc/petstore-api 8443:8443   # leave running in one terminal
+```
+
+```bash
+# Health (unauthenticated)
+curl -k https://localhost:8443/healthz                        # {"status":"ok"}
+
+# GraphQL behind Basic auth — a merchant lists their unsold pets
+curl -k -u merchant@petstore.local:demo-password \
+     -H 'Content-Type: application/json' \
+     -d '{"query":"{ unsoldPets(first:5){ edges{ node{ id name } } } }"}' \
+     https://localhost:8443/graphql
+```
+
+Plaintext HTTP is refused, and `/graphql` without credentials returns `401`.
+
+```bash
+make logs        # tail the API logs
+make k8s-down    # tear the stack down (removes the petstore namespace)
+```
+
+**Ingress.** An nginx Ingress (TLS, host `petstore.local`, re-encrypting to the HTTPS backend) is
+also applied. On Linux, add `petstore.local` to `/etc/hosts` pointing at `minikube ip` and
+`curl -k https://petstore.local/healthz`. On macOS with the Docker driver the node IP isn't routable
+from the host, so reach the ingress with `minikube tunnel` (separate terminal, needs sudo) or simply
+use the `kubectl port-forward` command above — it is the supported default.
+
+---
+
 ## Documentation
 
 | Document | What's inside |

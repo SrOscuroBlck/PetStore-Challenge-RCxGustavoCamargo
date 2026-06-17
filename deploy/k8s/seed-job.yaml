@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: petstore-seed
+  namespace: petstore
+  labels:
+    app.kubernetes.io/part-of: petstore
+# Sequenced by `make k8s-up` to run only after the API rollout (and thus after
+# the Atlas migration initContainer) completes, so the schema exists before the
+# seeder writes. The seeder itself is idempotent — re-running leaves existing
+# demo accounts untouched.
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: petstore-seed
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        # Wait for the schema, not just the port: the seeder writes to tables the
+        # Atlas migration creates, so blocking until `merchants` exists makes this
+        # Job safe to apply on its own, independent of the make-driven ordering.
+        - name: wait-for-schema
+          image: postgres:16
+          command: ["sh", "-c", "until psql \"$DATABASE_URL\" -tAc 'select 1 from merchants limit 1' >/dev/null 2>&1; do echo waiting for schema; sleep 2; done"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: petstore-api-secret
+                  key: DATABASE_URL
+      containers:
+        - name: seed
+          image: petstore-api:dev
+          imagePullPolicy: IfNotPresent
+          command: ["/seed"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: petstore-api-secret
+                  key: DATABASE_URL
+            - name: PII_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: petstore-api-secret
+                  key: PII_ENCRYPTION_KEY
