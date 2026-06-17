@@ -55,7 +55,7 @@ func run(m *testing.M) int {
 		Listing:      listingService,
 		Purchase:     purchaseService,
 		PictureStore: h.PictureStore,
-	}, logger)
+	}, logger, false)
 
 	return m.Run()
 }

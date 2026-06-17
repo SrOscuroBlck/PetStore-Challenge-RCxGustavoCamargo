@@ -73,6 +73,22 @@ func TestPresentError_PreservesValidationError(t *testing.T) {
 	}
 }
 
+func TestPresentError_PreservesPreTaggedCode(t *testing.T) {
+	// gqlgen's complexity-limit extension tags the error with a stable code
+	// before it reaches the presenter; it must not be masked as INTERNAL.
+	tagged := &gqlerror.Error{
+		Message:    "operation has complexity 9000, which exceeds the limit of 4000",
+		Extensions: map[string]any{"code": "COMPLEXITY_LIMIT_EXCEEDED"},
+	}
+	gqlErr := PresentError(context.Background(), tagged)
+	if gqlErr.Extensions["code"] != "COMPLEXITY_LIMIT_EXCEEDED" {
+		t.Fatalf("pre-tagged code = %v, want COMPLEXITY_LIMIT_EXCEEDED", gqlErr.Extensions["code"])
+	}
+	if gqlErr.Message != tagged.Message {
+		t.Fatalf("pre-tagged message was clobbered: got %q", gqlErr.Message)
+	}
+}
+
 func TestPresentError_RecognisedErrorGetsCode(t *testing.T) {
 	gqlErr := PresentError(context.Background(), domain.ErrPetUnavailable)
 	if gqlErr.Extensions["code"] != "UNAVAILABLE" {

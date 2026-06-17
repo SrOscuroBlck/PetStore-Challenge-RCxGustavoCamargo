@@ -48,14 +48,18 @@ Local dependencies and database (requires Docker):
 cp .env.example .env   # then set PII_ENCRYPTION_KEY (see below); the Makefile auto-loads .env
 make dev               # start Postgres, Redis, MinIO via docker-compose
 make migrate-up        # apply the database schema
-make run               # run the server; GET /healthz returns {"status":"ok"}
+make tls-certs         # generate a local self-signed TLS cert into ./certs
+make run               # run the server over TLS; GET /healthz returns {"status":"ok"}
 ```
 
-`make run` connects to Postgres, MinIO, and Redis and reads `PII_ENCRYPTION_KEY`, `REDIS_ADDR`,
-and the `MINIO_*` vars, so it needs `make dev` and a populated `.env`. Generate the key once
+`make run` serves **HTTPS only** (plaintext is refused) and connects to Postgres, MinIO, and Redis,
+reading `PII_ENCRYPTION_KEY`, `REDIS_ADDR`, the `MINIO_*` vars, and `TLS_CERT_FILE`/`TLS_KEY_FILE`,
+so it needs `make dev`, `make tls-certs`, and a populated `.env`. Generate the encryption key once
 with `openssl rand -base64 32`; the MinIO bucket is created automatically at startup, and the
-catalog cache falls back to Postgres if Redis is unavailable. The GraphQL endpoint is served at
-`/graphql` behind HTTP Basic auth; requests without valid credentials get 401.
+catalog cache falls back to Postgres if Redis is unavailable. Hit it with a self-signed cert via
+`curl -k https://localhost:8443/healthz`. The GraphQL endpoint at `/graphql` is behind HTTP Basic
+auth (requests without valid credentials get 401); schema introspection is off unless
+`GRAPHQL_INTROSPECTION=true`.
 
 Configuration is read from environment variables and validated at startup — a missing
 required value aborts with an error naming it. See [`.env.example`](.env.example) for the

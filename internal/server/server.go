@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,8 @@ const shutdownTimeout = 10 * time.Second
 type Server struct {
 	httpServer *http.Server
 	logger     *slog.Logger
+	certFile   string
+	keyFile    string
 }
 
 func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticator, graphqlHandler http.Handler) *Server {
@@ -39,9 +42,10 @@ func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticat
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       60 * time.Second,
+		TLSConfig:         &tls.Config{MinVersion: tls.VersionTLS12},
 	}
 
-	return &Server{httpServer: httpServer, logger: logger}
+	return &Server{httpServer: httpServer, logger: logger, certFile: cfg.TLSCertFile, keyFile: cfg.TLSKeyFile}
 }
 
 func (s *Server) Run(ctx context.Context) error {
@@ -49,7 +53,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	go func() {
 		s.logger.Info("server listening", "addr", s.httpServer.Addr)
-		listenErrors <- s.httpServer.ListenAndServe()
+		listenErrors <- s.httpServer.ListenAndServeTLS(s.certFile, s.keyFile)
 	}()
 
 	select {

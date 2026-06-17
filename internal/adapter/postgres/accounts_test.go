@@ -85,6 +85,15 @@ func TestCustomerRepository_CreateAndLookup(t *testing.T) {
 	if _, err := repo.GetByID(ctx, uuid.New()); !errors.Is(err, domain.ErrCustomerNotFound) {
 		t.Fatalf("want ErrCustomerNotFound, got %v", err)
 	}
+
+	// email stored encrypted, not plaintext
+	raw, err := sqlcgen.New(testPool).GetCustomerByID(ctx, id)
+	if err != nil {
+		t.Fatalf("raw: %v", err)
+	}
+	if string(raw.EmailEncrypted) == email {
+		t.Fatal("customer email is stored in plaintext")
+	}
 }
 
 func TestStoreRepository_CreateAndConflict(t *testing.T) {

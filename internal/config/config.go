@@ -23,6 +23,11 @@ type Config struct {
 	MinIOSecretKey   string
 	MinIOBucket      string
 	MinIOUseSSL      bool
+	TLSCertFile      string
+	TLSKeyFile       string
+	// GraphQLIntrospection enables schema introspection. It is off by default and
+	// should be enabled only in development.
+	GraphQLIntrospection bool
 }
 
 type MissingConfigError struct {
@@ -104,17 +109,34 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	tlsCertFile, err := requireEnv("TLS_CERT_FILE")
+	if err != nil {
+		return Config{}, err
+	}
+	tlsKeyFile, err := requireEnv("TLS_KEY_FILE")
+	if err != nil {
+		return Config{}, err
+	}
+
+	graphqlIntrospection, err := parseBool("GRAPHQL_INTROSPECTION", false)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
-		HTTPAddr:         httpAddr,
-		LogLevel:         logLevel,
-		DatabaseURL:      databaseURL,
-		PIIEncryptionKey: piiKey,
-		RedisAddr:        redisAddr,
-		MinIOEndpoint:    minioEndpoint,
-		MinIOAccessKey:   minioAccessKey,
-		MinIOSecretKey:   minioSecretKey,
-		MinIOBucket:      minioBucket,
-		MinIOUseSSL:      minioUseSSL,
+		HTTPAddr:             httpAddr,
+		LogLevel:             logLevel,
+		DatabaseURL:          databaseURL,
+		PIIEncryptionKey:     piiKey,
+		RedisAddr:            redisAddr,
+		MinIOEndpoint:        minioEndpoint,
+		MinIOAccessKey:       minioAccessKey,
+		MinIOSecretKey:       minioSecretKey,
+		MinIOBucket:          minioBucket,
+		MinIOUseSSL:          minioUseSSL,
+		TLSCertFile:          tlsCertFile,
+		TLSKeyFile:           tlsKeyFile,
+		GraphQLIntrospection: graphqlIntrospection,
 	}, nil
 }
 

@@ -23,6 +23,8 @@ func setRequired(t *testing.T) {
 	t.Setenv("MINIO_ACCESS_KEY", "minioadmin")
 	t.Setenv("MINIO_SECRET_KEY", "minioadmin")
 	t.Setenv("MINIO_BUCKET", "pet-pictures")
+	t.Setenv("TLS_CERT_FILE", "./certs/cert.pem")
+	t.Setenv("TLS_KEY_FILE", "./certs/key.pem")
 }
 
 func TestLoad_MissingHTTPAddrIsRejectedAndNamed(t *testing.T) {
@@ -178,6 +180,21 @@ func TestLoad_RejectsMinIOEndpointWithScheme(t *testing.T) {
 	}
 	if invalid.Key != "MINIO_ENDPOINT" {
 		t.Fatalf("expected the error to name MINIO_ENDPOINT, got %q", invalid.Key)
+	}
+}
+
+func TestLoad_MissingTLSCertFileIsRejectedAndNamed(t *testing.T) {
+	setRequired(t)
+	t.Setenv("TLS_CERT_FILE", "")
+
+	_, err := Load()
+
+	var missing *MissingConfigError
+	if !errors.As(err, &missing) {
+		t.Fatalf("expected *MissingConfigError, got %v", err)
+	}
+	if missing.Key != "TLS_CERT_FILE" {
+		t.Fatalf("expected the error to name TLS_CERT_FILE, got %q", missing.Key)
 	}
 }
 
