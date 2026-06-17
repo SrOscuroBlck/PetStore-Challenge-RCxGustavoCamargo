@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -28,7 +27,7 @@ func TestUpload_StoresObjectAndReturnsKey(t *testing.T) {
 	}
 }
 
-func TestPresignedURL_ServesUploadedBytes(t *testing.T) {
+func TestGet_StreamsUploadedBytes(t *testing.T) {
 	requireStore(t)
 	ctx := context.Background()
 
@@ -37,25 +36,37 @@ func TestPresignedURL_ServesUploadedBytes(t *testing.T) {
 		t.Fatalf("upload: %v", err)
 	}
 
-	url, err := testStore.PresignedURL(ctx, key)
+	content, err := testStore.Get(ctx, key)
 	if err != nil {
-		t.Fatalf("presign: %v", err)
+		t.Fatalf("get: %v", err)
 	}
+	defer func() { _ = content.Body.Close() }()
 
-	resp, err := http.Get(url)
-	if err != nil {
-		t.Fatalf("fetch presigned url: %v", err)
+	if content.ContentType != "image/png" {
+		t.Fatalf("content type = %q, want image/png", content.ContentType)
 	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("presigned GET status = %d, want 200", resp.StatusCode)
-	}
-	got, err := io.ReadAll(resp.Body)
+	got, err := io.ReadAll(content.Body)
 	if err != nil {
 		t.Fatalf("read body: %v", err)
 	}
 	if !bytes.Equal(got, pngBytes) {
-		t.Fatal("presigned URL did not serve the uploaded bytes")
+		t.Fatal("Get did not stream the uploaded bytes")
+	}
+}
+
+func TestGet_MissingObjectIsNotFound(t *testing.T) {
+	requireStore(t)
+
+	if _, err := testStore.Get(context.Background(), "pets/does-not-exist"); !errors.Is(err, domain.ErrPictureNotFound) {
+		t.Fatalf("get missing object error = %v, want ErrPictureNotFound", err)
+	}
+}
+
+func TestGet_RejectsKeyOutsidePetsPrefix(t *testing.T) {
+	requireStore(t)
+
+	if _, err := testStore.Get(context.Background(), "secrets/credentials"); !errors.Is(err, domain.ErrPictureNotFound) {
+		t.Fatalf("get key outside pets/ prefix error = %v, want ErrPictureNotFound", err)
 	}
 }
 

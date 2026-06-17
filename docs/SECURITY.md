@@ -84,7 +84,7 @@ TLS terminates at the API (or ingress) for every connection. Local development u
 
 - Secrets (DB credentials, encryption keys, MinIO keys, TLS material) are supplied via Kubernetes Secrets in Minikube and via an untracked `.env` locally. None are committed; `.env.example` documents the variables without values.
 - Required configuration is validated at startup — the server refuses to boot with a missing key rather than failing later (see [`ARCHITECTURE.md`](ARCHITECTURE.md#8-configuration--startup-fail-fast)).
-- Object storage access is via short-lived presigned URLs rather than exposing the bucket.
+- Pet pictures are served through the API's `/pictures/{objectKey}` path over TLS rather than exposing the object-storage bucket; clients never receive a signed URL and never reach the bucket or its host directly. The store only serves keys under the `pets/` prefix. The path is unauthenticated because pet pictures are public catalog content addressed by an opaque, unguessable key (see [ADR-0007](adr/0007-picture-proxy-path.md)).
 
 ---
 

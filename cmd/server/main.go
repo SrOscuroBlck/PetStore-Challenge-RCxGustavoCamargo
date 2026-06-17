@@ -86,9 +86,8 @@ func run() error {
 	listingService := listing.NewService(petRepo, pictureStore, catalogCache)
 	purchaseService := purchase.NewService(petRepo, catalogCache)
 	graphqlHandler := graph.NewHandler(&graph.Resolver{
-		Listing:      listingService,
-		Purchase:     purchaseService,
-		PictureStore: pictureStore,
+		Listing:  listingService,
+		Purchase: purchaseService,
 	}, logger, cfg.GraphQLIntrospection)
 
 	var playgroundHandler http.Handler
@@ -96,6 +95,6 @@ func run() error {
 		playgroundHandler = graph.NewPlaygroundHandler("/graphql")
 	}
 
-	srv := server.New(cfg, logger, authenticator, graphqlHandler, playgroundHandler)
+	srv := server.New(cfg, logger, authenticator, graphqlHandler, playgroundHandler, pictureStore)
 	return srv.Run(ctx)
 }

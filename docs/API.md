@@ -16,7 +16,7 @@ GraphQL is served at `POST /graphql` over **TLS** (plaintext HTTP is refused) be
 | `GRAPHQL_VALIDATION_FAILED` | the query is malformed or selects unknown fields |
 | `INTERNAL` | unexpected server error |
 
-List queries are Relay cursor connections (`first`/`after` → `edges { node cursor }`, `pageInfo { hasNextPage endCursor }`), keyset-ordered. `pictureUrl` is a short-lived presigned URL resolved on read.
+List queries are Relay cursor connections (`first`/`after` → `edges { node cursor }`, `pageInfo { hasNextPage endCursor }`), keyset-ordered. `pictureUrl` is a same-origin path (`/pictures/{objectKey}`) the API serves over the same TLS, streaming the image from object storage; clients use it directly as an image source and never see a signed URL or the storage bucket (see [ADR-0007](adr/0007-picture-proxy-path.md)).
 
 **Hardening:** schema introspection is disabled outside development (`GRAPHQL_INTROSPECTION`), every query is bounded by a complexity limit, and picture uploads are size-capped.
 

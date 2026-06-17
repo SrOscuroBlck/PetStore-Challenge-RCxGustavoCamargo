@@ -36,13 +36,22 @@ type CustomerRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (Customer, error)
 }
 
+// PictureContent is a pet picture read back from object storage: a streamable
+// body the caller must close, plus the metadata needed to serve it. Size is -1
+// when the store cannot report it up front.
+type PictureContent struct {
+	Body        io.ReadCloser
+	ContentType string
+	Size        int64
+}
+
 // PictureStore persists pet pictures in object storage. Upload returns the
 // generated object key the caller records on the pet; the picture bytes never
-// touch the database. PresignedURL hands back a short-lived signed GET URL so
-// clients fetch images directly from storage rather than through a resolver.
+// touch the database. Get streams a stored picture back so it can be served
+// through the API's picture path rather than loaded through a resolver.
 type PictureStore interface {
 	Upload(ctx context.Context, body io.Reader, size int64, contentType string) (objectKey string, err error)
-	PresignedURL(ctx context.Context, objectKey string) (string, error)
+	Get(ctx context.Context, objectKey string) (PictureContent, error)
 }
 
 // CatalogPage is one page of a store's available-pets listing together with the

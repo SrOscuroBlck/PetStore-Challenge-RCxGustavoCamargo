@@ -47,9 +47,11 @@ func TestCreatePet_StoresAvailablePetWithKey(t *testing.T) {
 	if pet.PictureObjectKey == "" {
 		t.Fatal("picture object key must be set")
 	}
-	if _, err := harness.PictureStore.PresignedURL(ctx, pet.PictureObjectKey); err != nil {
-		t.Fatalf("uploaded object should be addressable: %v", err)
+	content, err := harness.PictureStore.Get(ctx, pet.PictureObjectKey)
+	if err != nil {
+		t.Fatalf("uploaded object should be retrievable: %v", err)
 	}
+	_ = content.Body.Close()
 }
 
 func TestCreatePet_RejectsBadInput(t *testing.T) {
