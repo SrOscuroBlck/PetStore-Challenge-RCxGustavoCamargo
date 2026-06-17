@@ -15,6 +15,7 @@ import (
 	"roboticCrewChallenge/internal/adapter/postgres"
 	"roboticCrewChallenge/internal/adapter/rediscache"
 	"roboticCrewChallenge/internal/app/listing"
+	"roboticCrewChallenge/internal/app/purchase"
 	"roboticCrewChallenge/internal/auth"
 	"roboticCrewChallenge/internal/testsupport"
 )
@@ -47,8 +48,14 @@ func run(m *testing.M) int {
 	harness = h
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	service := listing.NewService(postgres.NewPetRepository(h.Pool, h.Enc), h.PictureStore, rediscache.NoOp{})
-	testHandler = NewHandler(&Resolver{Listing: service, PictureStore: h.PictureStore}, logger)
+	petRepo := postgres.NewPetRepository(h.Pool, h.Enc)
+	listingService := listing.NewService(petRepo, h.PictureStore, rediscache.NoOp{})
+	purchaseService := purchase.NewService(petRepo, rediscache.NoOp{})
+	testHandler = NewHandler(&Resolver{
+		Listing:      listingService,
+		Purchase:     purchaseService,
+		PictureStore: h.PictureStore,
+	}, logger)
 
 	return m.Run()
 }
@@ -73,6 +80,12 @@ func handlerAs(identity *auth.Identity) http.Handler {
 
 func merchantIdentity(storeID uuid.UUID) auth.Identity {
 	return auth.Identity{Subject: uuid.New(), Role: auth.RoleMerchant, StoreID: storeID}
+}
+
+// customerIdentity seeds a real customer (its id is an FK target for sold_by) and
+// returns the matching identity.
+func customerIdentity(t *testing.T) auth.Identity {
+	return auth.Identity{Subject: seedCustomer(t), Role: auth.RoleCustomer}
 }
 
 func seedStore(t *testing.T) uuid.UUID    { return harness.SeedStore(t) }

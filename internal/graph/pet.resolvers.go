@@ -55,8 +55,51 @@ func (r *mutationResolver) RemovePet(ctx context.Context, id string) (*generated
 	return toGraphPet(pet), nil
 }
 
+// PurchasePet is the resolver for the purchasePet field.
+func (r *mutationResolver) PurchasePet(ctx context.Context, petID string) (*generated.PublicPet, error) {
+	identity, err := auth.RequireCustomer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(petID)
+	if err != nil {
+		return nil, &domain.ValidationError{Field: "petId", Msg: "is not a valid identifier"}
+	}
+	pet, err := r.Purchase.PurchasePet(ctx, identity.Subject, id)
+	if err != nil {
+		return nil, err
+	}
+	return toGraphPublicPet(pet), nil
+}
+
+// Checkout is the resolver for the checkout field.
+func (r *mutationResolver) Checkout(ctx context.Context, petIds []string) ([]generated.PublicPet, error) {
+	identity, err := auth.RequireCustomer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]uuid.UUID, 0, len(petIds))
+	for _, raw := range petIds {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return nil, &domain.ValidationError{Field: "petIds", Msg: "contains an invalid identifier"}
+		}
+		ids = append(ids, id)
+	}
+	pets, err := r.Purchase.Checkout(ctx, identity.Subject, ids)
+	if err != nil {
+		return nil, err
+	}
+	return toPublicPets(pets), nil
+}
+
 // PictureURL is the resolver for the pictureUrl field.
 func (r *petResolver) PictureURL(ctx context.Context, obj *generated.Pet) (string, error) {
+	return r.PictureStore.PresignedURL(ctx, obj.PictureObjectKey)
+}
+
+// PictureURL is the resolver for the pictureUrl field.
+func (r *publicPetResolver) PictureURL(ctx context.Context, obj *generated.PublicPet) (string, error) {
 	return r.PictureStore.PresignedURL(ctx, obj.PictureObjectKey)
 }
 
@@ -86,15 +129,35 @@ func (r *queryResolver) UnsoldPets(ctx context.Context, first *int, after *strin
 	return toConnection(pets, nextCursor, availableCursor), nil
 }
 
+// AvailablePets is the resolver for the availablePets field.
+func (r *queryResolver) AvailablePets(ctx context.Context, storeID string, first *int, after *string) (*generated.PublicPetConnection, error) {
+	if _, err := auth.RequireCustomer(ctx); err != nil {
+		return nil, err
+	}
+	store, err := uuid.Parse(storeID)
+	if err != nil {
+		return nil, &domain.ValidationError{Field: "storeId", Msg: "is not a valid identifier"}
+	}
+	pets, nextCursor, err := r.Listing.UnsoldPets(ctx, store, clampFirst(first), cursorOrEmpty(after))
+	if err != nil {
+		return nil, err
+	}
+	return toPublicConnection(pets, nextCursor), nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Pet returns generated.PetResolver implementation.
 func (r *Resolver) Pet() generated.PetResolver { return &petResolver{r} }
 
+// PublicPet returns generated.PublicPetResolver implementation.
+func (r *Resolver) PublicPet() generated.PublicPetResolver { return &publicPetResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type petResolver struct{ *Resolver }
+type publicPetResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

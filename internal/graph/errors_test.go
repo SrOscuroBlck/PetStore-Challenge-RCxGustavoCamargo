@@ -1,21 +1,25 @@
 package graph
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"roboticCrewChallenge/internal/auth"
 	"roboticCrewChallenge/internal/domain"
 )
 
-func TestClassify(t *testing.T) {
+func TestClassify_RecognisedErrors(t *testing.T) {
 	cases := []struct {
 		name string
 		err  error
 		code string
 	}{
 		{"validation", &domain.ValidationError{Field: "name", Msg: "is required"}, "VALIDATION"},
+		{"unavailable pets", &domain.UnavailablePetsError{Pets: []domain.UnavailablePet{{Name: "Pluto"}}}, "UNAVAILABLE"},
 		{"unauthenticated", auth.ErrUnauthenticated, "UNAUTHENTICATED"},
 		{"forbidden", auth.ErrForbidden, "FORBIDDEN"},
 		{"pet not found", domain.ErrPetNotFound, "NOT_FOUND"},
@@ -24,28 +28,54 @@ func TestClassify(t *testing.T) {
 		{"unavailable", domain.ErrPetUnavailable, "UNAVAILABLE"},
 		{"bad picture type", domain.ErrUnsupportedPictureType, "UNSUPPORTED_MEDIA_TYPE"},
 		{"picture too large", domain.ErrPictureTooLarge, "PAYLOAD_TOO_LARGE"},
-		{"unknown", errors.New("boom"), "INTERNAL"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			code, message := classify(tc.err)
-			if code != tc.code {
-				t.Fatalf("code = %q, want %q", code, tc.code)
+			code, message, ok := classify(tc.err)
+			if !ok || code != tc.code {
+				t.Fatalf("classify = (%q, ok=%v), want code %q", code, ok, tc.code)
 			}
 			if message == "" {
 				t.Fatal("message must not be empty")
 			}
-			wrappedCode, _ := classify(fmt.Errorf("layer: %w", tc.err))
-			if wrappedCode != tc.code {
-				t.Fatalf("wrapped code = %q, want %q (errors.Is/As must unwrap)", wrappedCode, tc.code)
+			wrappedCode, _, wrappedOK := classify(fmt.Errorf("layer: %w", tc.err))
+			if !wrappedOK || wrappedCode != tc.code {
+				t.Fatalf("wrapped classify = (%q, ok=%v), want %q (errors.Is/As must unwrap)", wrappedCode, wrappedOK, tc.code)
 			}
 		})
 	}
 }
 
-func TestClassify_UnknownLeaksNothing(t *testing.T) {
-	_, message := classify(errors.New("sensitive internal detail: dsn=postgres://secret"))
-	if message != "internal server error" {
-		t.Fatalf("unknown error message = %q, must be the generic message", message)
+func TestClassify_UnknownIsNotRecognised(t *testing.T) {
+	if _, _, ok := classify(errors.New("boom")); ok {
+		t.Fatal("an unknown error must not be recognised by classify")
+	}
+}
+
+func TestPresentError_UnknownLeaksNothing(t *testing.T) {
+	gqlErr := PresentError(context.Background(), errors.New("sensitive internal detail: dsn=postgres://secret"))
+	if gqlErr.Message != "internal server error" {
+		t.Fatalf("unknown error message = %q, must be the generic message", gqlErr.Message)
+	}
+	if gqlErr.Extensions["code"] != "INTERNAL" {
+		t.Fatalf("unknown error code = %v, want INTERNAL", gqlErr.Extensions["code"])
+	}
+}
+
+func TestPresentError_PreservesValidationError(t *testing.T) {
+	validation := &gqlerror.Error{Message: `Cannot query field "breederName" on type "PublicPet".`, Rule: "FieldsOnCorrectType"}
+	gqlErr := PresentError(context.Background(), validation)
+	if gqlErr.Extensions["code"] != "GRAPHQL_VALIDATION_FAILED" {
+		t.Fatalf("validation code = %v, want GRAPHQL_VALIDATION_FAILED", gqlErr.Extensions["code"])
+	}
+	if gqlErr.Message != validation.Message {
+		t.Fatalf("validation message was clobbered: got %q", gqlErr.Message)
+	}
+}
+
+func TestPresentError_RecognisedErrorGetsCode(t *testing.T) {
+	gqlErr := PresentError(context.Background(), domain.ErrPetUnavailable)
+	if gqlErr.Extensions["code"] != "UNAVAILABLE" {
+		t.Fatalf("code = %v, want UNAVAILABLE", gqlErr.Extensions["code"])
 	}
 }

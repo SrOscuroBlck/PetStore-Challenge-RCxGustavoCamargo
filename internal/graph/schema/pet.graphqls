@@ -57,12 +57,42 @@ input CreatePetInput {
   breederEmail: String!
 }
 
+"""
+PublicPet is the customer-facing view of a pet. It omits breeder contact details
+so breeder PII is never exposed to customers, even though the cached domain pet
+still carries them.
+"""
+type PublicPet {
+  id: ID!
+  name: String!
+  species: Species!
+  ageYears: Int!
+  description: String!
+  pictureUrl: String!
+  status: PetStatus!
+  createdAt: Time!
+  soldAt: Time
+}
+
+type PublicPetEdge {
+  node: PublicPet!
+  cursor: String!
+}
+
+type PublicPetConnection {
+  edges: [PublicPetEdge!]!
+  pageInfo: PageInfo!
+}
+
 type Mutation {
   createPet(input: CreatePetInput!): Pet!
   removePet(id: ID!): Pet!
+  purchasePet(petId: ID!): PublicPet!
+  checkout(petIds: [ID!]!): [PublicPet!]!
 }
 
 type Query {
   soldPets(from: Time!, to: Time!, first: Int, after: String): PetConnection!
   unsoldPets(first: Int, after: String): PetConnection!
+  availablePets(storeId: ID!, first: Int, after: String): PublicPetConnection!
 }

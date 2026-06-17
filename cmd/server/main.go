@@ -14,6 +14,7 @@ import (
 	"roboticCrewChallenge/internal/adapter/postgres"
 	"roboticCrewChallenge/internal/adapter/rediscache"
 	"roboticCrewChallenge/internal/app/listing"
+	"roboticCrewChallenge/internal/app/purchase"
 	"roboticCrewChallenge/internal/auth"
 	"roboticCrewChallenge/internal/config"
 	"roboticCrewChallenge/internal/graph"
@@ -80,8 +81,14 @@ func run() error {
 	cancelPing()
 	catalogCache := rediscache.New(redisClient, encryptor, logger, catalogCacheTTL)
 
-	listingService := listing.NewService(postgres.NewPetRepository(pool, encryptor), pictureStore, catalogCache)
-	graphqlHandler := graph.NewHandler(&graph.Resolver{Listing: listingService, PictureStore: pictureStore}, logger)
+	petRepo := postgres.NewPetRepository(pool, encryptor)
+	listingService := listing.NewService(petRepo, pictureStore, catalogCache)
+	purchaseService := purchase.NewService(petRepo, catalogCache)
+	graphqlHandler := graph.NewHandler(&graph.Resolver{
+		Listing:      listingService,
+		Purchase:     purchaseService,
+		PictureStore: pictureStore,
+	}, logger)
 
 	srv := server.New(cfg, logger, authenticator, graphqlHandler)
 	return srv.Run(ctx)
