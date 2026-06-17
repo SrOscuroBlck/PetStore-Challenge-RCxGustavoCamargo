@@ -28,13 +28,18 @@ import (
 )
 
 const (
-	merchantEmail = "merchant@petstore.local"
-	customerEmail = "customer@petstore.local"
-	demoPassword  = "demo-password"
-	storeName     = "Demo Store"
-	breederName   = "Demo Breeder"
-	breederEmail  = "breeder@petstore.local"
+	merchantEmail       = "merchant@petstore.local"
+	customerEmail       = "customer@petstore.local"
+	secondCustomerEmail = "customer2@petstore.local"
+	demoPassword        = "demo-password"
+	storeName           = "Demo Store"
+	breederName         = "Demo Breeder"
+	breederEmail        = "breeder@petstore.local"
 )
+
+// customerEmails are seeded so a demo can act as two shoppers — needed to exercise
+// the purchase/checkout race (one customer buys a pet the other still sees).
+var customerEmails = []string{customerEmail, secondCustomerEmail}
 
 // demoStoreID is fixed so a fresh deployment always exposes the storefront at the
 // same URL; the README and graders can rely on /store/<this id> without looking it up.
@@ -93,8 +98,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if err := seedCustomer(ctx, customers); err != nil {
-		return err
+	for _, email := range customerEmails {
+		if err := seedCustomer(ctx, customers, email); err != nil {
+			return err
+		}
 	}
 	seeded, err := seedDemoPets(ctx, catalog, petRepo, storeID)
 	if err != nil {
@@ -103,7 +110,7 @@ func run() error {
 
 	slog.Info("demo data ready",
 		"merchant", merchantEmail,
-		"customer", customerEmail,
+		"customers", customerEmails,
 		"storeId", storeID,
 		"petsSeeded", seeded,
 	)
@@ -228,17 +235,17 @@ func seedDemoPets(ctx context.Context, catalog *listing.Service, pets *postgres.
 	return len(demoCatalog), nil
 }
 
-func seedCustomer(ctx context.Context, customers *postgres.CustomerRepository) error {
+func seedCustomer(ctx context.Context, customers *postgres.CustomerRepository, email string) error {
 	hash, err := crypto.HashPassword(demoPassword)
 	if err != nil {
 		return fmt.Errorf("hash customer password: %w", err)
 	}
-	customer, err := domain.NewCustomer(uuid.New(), customerEmail, hash, time.Now().UTC())
+	customer, err := domain.NewCustomer(uuid.New(), email, hash, time.Now().UTC())
 	if err != nil {
 		return err
 	}
 	if err := customers.Create(ctx, customer); err != nil && !errors.Is(err, domain.ErrEmailInUse) {
-		return fmt.Errorf("create customer: %w", err)
+		return fmt.Errorf("create customer %s: %w", email, err)
 	}
 	return nil
 }

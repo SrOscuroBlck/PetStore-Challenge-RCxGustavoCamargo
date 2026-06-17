@@ -89,6 +89,11 @@ before the API serves traffic.** A one-shot Job then seeds demo accounts and a c
 |---|---|---|
 | Merchant (owns a "Demo Store") | `merchant@petstore.local` | `demo-password` |
 | Customer | `customer@petstore.local` | `demo-password` |
+| Customer (second shopper) | `customer2@petstore.local` | `demo-password` |
+
+The second customer lets you exercise the purchase/checkout race: buy a pet as one shopper and watch
+the other get a human-readable `UNAVAILABLE` error.
+
 
 The store is pre-filled with a catalog of cats, dogs, and frogs (with real bundled photos —
 see [`cmd/seed/assets/CREDITS.md`](cmd/seed/assets/CREDITS.md)), so the customer storefront is
