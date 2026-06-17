@@ -59,7 +59,8 @@ with `openssl rand -base64 32`; the MinIO bucket is created automatically at sta
 catalog cache falls back to Postgres if Redis is unavailable. Hit it with a self-signed cert via
 `curl -k https://localhost:8443/healthz`. The GraphQL endpoint at `/graphql` is behind HTTP Basic
 auth (requests without valid credentials get 401); schema introspection is off unless
-`GRAPHQL_INTROSPECTION=true`.
+`GRAPHQL_INTROSPECTION=true`, which also serves a browser GraphQL playground at
+`https://localhost:8443/playground` (see the Minikube section for how to set the auth header).
 
 Configuration is read from environment variables and validated at startup — a missing
 required value aborts with an error naming it. See [`.env.example`](.env.example) for the
@@ -107,6 +108,27 @@ curl -k -u merchant@petstore.local:demo-password \
 ```
 
 Plaintext HTTP is refused, and `/graphql` without credentials returns `401`.
+
+**Explore in a browser (GraphQL playground).** With the same `port-forward` running, open
+**`https://localhost:8443/playground`** and accept the self-signed-cert warning. The page is a
+GraphiQL editor with full schema docs and autocompletion (it is served only when
+`GRAPHQL_INTROSPECTION=true`, which the Minikube config sets; it is off by default in production).
+The page loads without credentials, but everything it sends — including the introspection query that
+fills the schema docs — is behind Basic auth, so set a header first or the docs panel stays empty.
+Open the **Headers** pane at the bottom and paste one of:
+
+```json
+{ "Authorization": "Basic bWVyY2hhbnRAcGV0c3RvcmUubG9jYWw6ZGVtby1wYXNzd29yZA==" }
+```
+```json
+{ "Authorization": "Basic Y3VzdG9tZXJAcGV0c3RvcmUubG9jYWw6ZGVtby1wYXNzd29yZA==" }
+```
+
+The first is the merchant, the second the customer (`base64("<email>:demo-password")`); switch headers
+to switch roles. From there you can run `unsoldPets`, `soldPets`, `availablePets`, `purchasePet`, and
+`checkout`. One exception: **`createPet` uploads a file**, which a browser GraphiQL can't send — create
+the first pet with the `curl` multipart command (see the merchant step in the demo flow), then browse
+and purchase it from the playground.
 
 ```bash
 make logs        # tail the API logs

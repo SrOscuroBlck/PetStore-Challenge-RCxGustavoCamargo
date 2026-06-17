@@ -49,12 +49,50 @@ func TestHandleHealth_ReturnsOK(t *testing.T) {
 	}
 }
 
+func TestServer_PlaygroundServedUnauthenticatedWhenProvided(t *testing.T) {
+	certFile, keyFile := selfSignedFiles(t)
+	cfg := config.Config{HTTPAddr: "127.0.0.1:0", TLSCertFile: certFile, TLSKeyFile: keyFile}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	stub := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	playgroundStub := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "PLAYGROUND")
+	})
+	srv := New(cfg, logger, auth.NewAuthenticator(nil, nil, nil), stub, playgroundStub)
+
+	req := httptest.NewRequest(http.MethodGet, "/playground", nil)
+	rec := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("playground status = %d, want 200 with no credentials", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "PLAYGROUND") {
+		t.Fatalf("playground body = %q, want the playground page", rec.Body.String())
+	}
+}
+
+func TestServer_PlaygroundAbsentWhenNil(t *testing.T) {
+	certFile, keyFile := selfSignedFiles(t)
+	cfg := config.Config{HTTPAddr: "127.0.0.1:0", TLSCertFile: certFile, TLSKeyFile: keyFile}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	stub := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	srv := New(cfg, logger, auth.NewAuthenticator(nil, nil, nil), stub, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/playground", nil)
+	rec := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("playground status = %d, want 404 when not mounted", rec.Code)
+	}
+}
+
 func TestServer_RunShutsDownWhenContextCancelled(t *testing.T) {
 	certFile, keyFile := selfSignedFiles(t)
 	cfg := config.Config{HTTPAddr: "127.0.0.1:0", LogLevel: slog.LevelInfo, TLSCertFile: certFile, TLSKeyFile: keyFile}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	stub := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-	srv := New(cfg, logger, auth.NewAuthenticator(nil, nil, nil), stub)
+	srv := New(cfg, logger, auth.NewAuthenticator(nil, nil, nil), stub, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)

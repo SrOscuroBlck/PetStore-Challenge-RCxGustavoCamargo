@@ -21,7 +21,10 @@ type Server struct {
 	keyFile    string
 }
 
-func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticator, graphqlHandler http.Handler) *Server {
+// New builds the HTTP server. playgroundHandler is optional: when non-nil it is
+// served unauthenticated at GET /playground for local exploration; pass nil to
+// not expose it at all.
+func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticator, graphqlHandler, playgroundHandler http.Handler) *Server {
 	if authenticator == nil {
 		panic("server: authenticator is required")
 	}
@@ -34,6 +37,9 @@ func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticat
 
 	requireAuth := auth.BasicAuth(authenticator)
 	mux.Handle("/graphql", requireAuth(graphqlHandler))
+	if playgroundHandler != nil {
+		mux.Handle("GET /playground", playgroundHandler)
+	}
 
 	httpServer := &http.Server{
 		Addr:              cfg.HTTPAddr,

@@ -10,6 +10,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
@@ -55,6 +56,16 @@ func NewHandler(resolver *Resolver, logger *slog.Logger, introspection bool) htt
 	})
 
 	return srv
+}
+
+// NewPlaygroundHandler serves the GraphiQL page that a developer opens in a
+// browser to explore the schema and run operations against the GraphQL endpoint
+// at the given path. The page
+// itself is unauthenticated so it can load; the queries it sends carry whatever
+// Authorization header the developer sets. It relies on introspection for schema
+// docs and autocompletion, so the server only mounts it when introspection is on.
+func NewPlaygroundHandler(endpoint string) http.Handler {
+	return playground.Handler("Pet Store API", endpoint)
 }
 
 // executableConfig wires resolvers plus per-field complexity. The paginated list
