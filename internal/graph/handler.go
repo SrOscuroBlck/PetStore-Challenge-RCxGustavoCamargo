@@ -58,14 +58,15 @@ func NewHandler(resolver *Resolver, logger *slog.Logger, introspection bool) htt
 	return srv
 }
 
-// NewPlaygroundHandler serves the GraphiQL page that a developer opens in a
-// browser to explore the schema and run operations against the GraphQL endpoint
-// at the given path. The page
-// itself is unauthenticated so it can load; the queries it sends carry whatever
-// Authorization header the developer sets. It relies on introspection for schema
-// docs and autocompletion, so the server only mounts it when introspection is on.
+// NewPlaygroundHandler serves the Altair playground that a developer opens in a
+// browser to explore the schema and run every operation against the GraphQL
+// endpoint at the given path — including createPet, since Altair can send the
+// multipart file upload that GraphiQL cannot. The page itself is unauthenticated
+// so it can load; the requests it sends carry whatever Authorization header the
+// developer sets. It relies on introspection for schema docs and autocompletion,
+// so the server only mounts it when introspection is on.
 func NewPlaygroundHandler(endpoint string) http.Handler {
-	return playground.Handler("Pet Store API", endpoint)
+	return playground.AltairHandler("Pet Store API", endpoint, nil)
 }
 
 // executableConfig wires resolvers plus per-field complexity. The paginated list

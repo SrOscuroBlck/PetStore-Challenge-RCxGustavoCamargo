@@ -110,25 +110,25 @@ curl -k -u merchant@petstore.local:demo-password \
 Plaintext HTTP is refused, and `/graphql` without credentials returns `401`.
 
 **Explore in a browser (GraphQL playground).** With the same `port-forward` running, open
-**`https://localhost:8443/playground`** and accept the self-signed-cert warning. The page is a
-GraphiQL editor with full schema docs and autocompletion (it is served only when
-`GRAPHQL_INTROSPECTION=true`, which the Minikube config sets; it is off by default in production).
-The page loads without credentials, but everything it sends — including the introspection query that
-fills the schema docs — is behind Basic auth, so set a header first or the docs panel stays empty.
-Open the **Headers** pane at the bottom and paste one of:
+**`https://localhost:8443/playground`** and accept the self-signed-cert warning. The page is an
+[Altair](https://altairgraphql.dev/) playground with full schema docs, autocompletion, and file
+uploads (it is served only when `GRAPHQL_INTROSPECTION=true`, which the Minikube config sets; it is
+off by default in production). The page loads without credentials, but everything it sends —
+including the introspection query that fills the schema docs — is behind Basic auth, so set a header
+first or the docs panel stays empty. Open the **Headers** panel and add `Authorization` with one of:
 
-```json
-{ "Authorization": "Basic bWVyY2hhbnRAcGV0c3RvcmUubG9jYWw6ZGVtby1wYXNzd29yZA==" }
 ```
-```json
-{ "Authorization": "Basic Y3VzdG9tZXJAcGV0c3RvcmUubG9jYWw6ZGVtby1wYXNzd29yZA==" }
+Basic bWVyY2hhbnRAcGV0c3RvcmUubG9jYWw6ZGVtby1wYXNzd29yZA==
+```
+```
+Basic Y3VzdG9tZXJAcGV0c3RvcmUubG9jYWw6ZGVtby1wYXNzd29yZA==
 ```
 
 The first is the merchant, the second the customer (`base64("<email>:demo-password")`); switch headers
-to switch roles. From there you can run `unsoldPets`, `soldPets`, `availablePets`, `purchasePet`, and
-`checkout`. One exception: **`createPet` uploads a file**, which a browser GraphiQL can't send — create
-the first pet with the `curl` multipart command (see the merchant step in the demo flow), then browse
-and purchase it from the playground.
+to switch roles. **Every** operation runs here — `createPet`, `removePet` (merchant) and `availablePets`,
+`purchasePet`, `checkout` (customer) — including the `createPet` picture upload: write the mutation with
+an `$picture: Upload!` variable, then use Altair's **Add file** control (under Variables) to bind a file
+to that variable.
 
 ```bash
 make logs        # tail the API logs
