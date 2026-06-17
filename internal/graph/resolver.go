@@ -3,7 +3,6 @@ package graph
 import (
 	"roboticCrewChallenge/internal/app/listing"
 	"roboticCrewChallenge/internal/app/purchase"
-	"roboticCrewChallenge/internal/domain"
 )
 
 const (
@@ -13,9 +12,8 @@ const (
 
 // Resolver is the dependency root injected into every resolver.
 type Resolver struct {
-	Listing      *listing.Service
-	Purchase     *purchase.Service
-	PictureStore domain.PictureStore
+	Listing  *listing.Service
+	Purchase *purchase.Service
 }
 
 func clampFirst(first *int) int {

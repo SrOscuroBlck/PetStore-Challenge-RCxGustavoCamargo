@@ -109,6 +109,10 @@ curl -k -u merchant@petstore.local:demo-password \
 
 Plaintext HTTP is refused, and `/graphql` without credentials returns `401`.
 
+Pet pictures are served by the API over the same TLS endpoint at `/pictures/{objectKey}` — a pet's
+`pictureUrl` is that same-origin path, so a browser (or the customer frontend) loads images straight
+from the API with no extra setup or separate object-storage exposure ([ADR-0007](docs/adr/0007-picture-proxy-path.md)).
+
 **Explore in a browser (GraphQL playground).** With the same `port-forward` running, open
 **`https://localhost:8443/playground`** and accept the self-signed-cert warning. The page is an
 [Altair](https://altairgraphql.dev/) playground with full schema docs, autocompletion, and file

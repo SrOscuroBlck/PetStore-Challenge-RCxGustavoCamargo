@@ -52,9 +52,8 @@ func run(m *testing.M) int {
 	listingService := listing.NewService(petRepo, h.PictureStore, rediscache.NoOp{})
 	purchaseService := purchase.NewService(petRepo, rediscache.NoOp{})
 	testHandler = NewHandler(&Resolver{
-		Listing:      listingService,
-		Purchase:     purchaseService,
-		PictureStore: h.PictureStore,
+		Listing:  listingService,
+		Purchase: purchaseService,
 	}, logger, false)
 
 	return m.Run()

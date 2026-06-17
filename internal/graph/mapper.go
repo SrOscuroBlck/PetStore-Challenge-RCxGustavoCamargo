@@ -6,6 +6,13 @@ import (
 	"roboticCrewChallenge/internal/platform/pagination"
 )
 
+// picturePath maps a stored object key to the API path that serves the picture.
+// It is the read side of the route mounted at GET /pictures/{objectKey...} in
+// internal/server, kept same-origin so a browser fetches it over the API's TLS.
+func picturePath(objectKey string) string {
+	return "/pictures/" + objectKey
+}
+
 func toGraphPet(pet domain.Pet) *generated.Pet {
 	return &generated.Pet{
 		ID:               pet.ID.String(),
