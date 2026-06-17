@@ -95,12 +95,12 @@ func (r *mutationResolver) Checkout(ctx context.Context, petIds []string) ([]gen
 
 // PictureURL is the resolver for the pictureUrl field.
 func (r *petResolver) PictureURL(ctx context.Context, obj *generated.Pet) (string, error) {
-	return r.PictureStore.PresignedURL(ctx, obj.PictureObjectKey)
+	return picturePath(obj.PictureObjectKey), nil
 }
 
 // PictureURL is the resolver for the pictureUrl field.
 func (r *publicPetResolver) PictureURL(ctx context.Context, obj *generated.PublicPet) (string, error) {
-	return r.PictureStore.PresignedURL(ctx, obj.PictureObjectKey)
+	return picturePath(obj.PictureObjectKey), nil
 }
 
 // SoldPets is the resolver for the soldPets field.

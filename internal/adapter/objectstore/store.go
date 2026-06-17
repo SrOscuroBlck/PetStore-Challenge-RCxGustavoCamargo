@@ -2,21 +2,19 @@ package objectstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"net/url"
-	"time"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
+	"roboticCrewChallenge/internal/domain"
 	"roboticCrewChallenge/internal/platform/id"
 )
 
-const (
-	presignTTL      = 15 * time.Minute
-	objectKeyPrefix = "pets/"
-)
+const objectKeyPrefix = "pets/"
 
 type PictureStore struct {
 	client *minio.Client
@@ -66,10 +64,26 @@ func (s *PictureStore) Upload(ctx context.Context, body io.Reader, size int64, c
 	return key, nil
 }
 
-func (s *PictureStore) PresignedURL(ctx context.Context, objectKey string) (string, error) {
-	signed, err := s.client.PresignedGetObject(ctx, s.bucket, objectKey, presignTTL, url.Values{})
-	if err != nil {
-		return "", fmt.Errorf("presign get %q: %w", objectKey, err)
+// Get streams the stored object back. The caller owns PictureContent.Body and
+// must close it. A missing object maps to domain.ErrPictureNotFound so the
+// picture path can answer 404 without leaking storage detail.
+func (s *PictureStore) Get(ctx context.Context, objectKey string) (domain.PictureContent, error) {
+	// Only pet pictures live under this prefix; refusing anything else keeps the
+	// read path from reaching unrelated objects even if the bucket ever holds them.
+	if !strings.HasPrefix(objectKey, objectKeyPrefix) {
+		return domain.PictureContent{}, domain.ErrPictureNotFound
 	}
-	return signed.String(), nil
+	obj, err := s.client.GetObject(ctx, s.bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return domain.PictureContent{}, fmt.Errorf("get object %q: %w", objectKey, err)
+	}
+	info, err := obj.Stat()
+	if err != nil {
+		_ = obj.Close()
+		if minio.ToErrorResponse(err).Code == minio.NoSuchKey {
+			return domain.PictureContent{}, fmt.Errorf("stat object %q: %w", objectKey, errors.Join(domain.ErrPictureNotFound, err))
+		}
+		return domain.PictureContent{}, fmt.Errorf("stat object %q: %w", objectKey, err)
+	}
+	return domain.PictureContent{Body: obj, ContentType: info.ContentType, Size: info.Size}, nil
 }

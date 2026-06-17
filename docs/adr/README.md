@@ -10,3 +10,4 @@ Each record captures one significant decision: its context, the choice made, and
 | [0004](0004-race-condition-strategy.md) | Database-enforced race-condition strategy | Accepted |
 | [0005](0005-image-storage-minio.md) | MinIO object storage for pet pictures | Accepted |
 | [0006](0006-go-version-policy.md) | Track the latest stable Go toolchain | Accepted |
+| [0007](0007-picture-proxy-path.md) | Serve pet pictures through an application proxy path | Accepted |

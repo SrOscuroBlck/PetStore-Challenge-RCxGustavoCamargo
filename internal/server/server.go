@@ -23,8 +23,9 @@ type Server struct {
 
 // New builds the HTTP server. playgroundHandler is optional: when non-nil it is
 // served unauthenticated at GET /playground for local exploration; pass nil to
-// not expose it at all.
-func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticator, graphqlHandler, playgroundHandler http.Handler) *Server {
+// not expose it at all. pictures, when non-nil, serves pet pictures over the same
+// origin and TLS at GET /pictures/{objectKey...}.
+func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticator, graphqlHandler, playgroundHandler http.Handler, pictures pictureReader) *Server {
 	if authenticator == nil {
 		panic("server: authenticator is required")
 	}
@@ -39,6 +40,9 @@ func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticat
 	mux.Handle("/graphql", requireAuth(graphqlHandler))
 	if playgroundHandler != nil {
 		mux.Handle("GET /playground", playgroundHandler)
+	}
+	if pictures != nil {
+		mux.Handle("GET /pictures/{objectKey...}", newPictureHandler(pictures, logger))
 	}
 
 	httpServer := &http.Server{

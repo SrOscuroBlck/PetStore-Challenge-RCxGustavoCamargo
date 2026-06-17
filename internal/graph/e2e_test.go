@@ -82,7 +82,7 @@ func TestE2E_CreatePet_ReturnsPetWithPictureURL(t *testing.T) {
 		t.Fatal("createdAt must be returned")
 	}
 	if out.CreatePet.PictureURL == "" {
-		t.Fatal("pictureUrl must resolve to a presigned URL")
+		t.Fatal("pictureUrl must resolve to a picture path")
 	}
 }
 

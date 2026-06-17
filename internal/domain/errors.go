@@ -29,6 +29,7 @@ var (
 
 	ErrUnsupportedPictureType = errors.New("unsupported picture content type")
 	ErrPictureTooLarge        = errors.New("picture exceeds the maximum allowed size")
+	ErrPictureNotFound        = errors.New("picture not found")
 )
 
 type UnavailablePet struct {
