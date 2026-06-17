@@ -9,8 +9,10 @@ import (
 
 	"roboticCrewChallenge/internal/adapter/objectstore"
 	"roboticCrewChallenge/internal/adapter/postgres"
+	"roboticCrewChallenge/internal/app/listing"
 	"roboticCrewChallenge/internal/auth"
 	"roboticCrewChallenge/internal/config"
+	"roboticCrewChallenge/internal/graph"
 	"roboticCrewChallenge/internal/platform/crypto"
 	"roboticCrewChallenge/internal/platform/logging"
 	"roboticCrewChallenge/internal/server"
@@ -63,6 +65,9 @@ func run() error {
 		postgres.NewStoreRepository(pool),
 	)
 
-	srv := server.New(cfg, logger, authenticator)
+	listingService := listing.NewService(postgres.NewPetRepository(pool, encryptor), pictureStore)
+	graphqlHandler := graph.NewHandler(&graph.Resolver{Listing: listingService, PictureStore: pictureStore}, logger)
+
+	srv := server.New(cfg, logger, authenticator, graphqlHandler)
 	return srv.Run(ctx)
 }

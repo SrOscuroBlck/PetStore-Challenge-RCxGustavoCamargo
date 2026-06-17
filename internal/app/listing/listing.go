@@ -1,0 +1,108 @@
+package listing
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"time"
+
+	"github.com/google/uuid"
+
+	"roboticCrewChallenge/internal/domain"
+	"roboticCrewChallenge/internal/platform/id"
+	"roboticCrewChallenge/internal/platform/pagination"
+	"roboticCrewChallenge/internal/platform/picture"
+)
+
+type Service struct {
+	pets     domain.PetRepository
+	pictures domain.PictureStore
+	newID    func() (uuid.UUID, error)
+	now      func() time.Time
+}
+
+func NewService(pets domain.PetRepository, pictures domain.PictureStore) *Service {
+	return &Service{
+		pets:     pets,
+		pictures: pictures,
+		newID:    id.New,
+		now:      func() time.Time { return time.Now().UTC() },
+	}
+}
+
+type CreatePetCommand struct {
+	StoreID      uuid.UUID
+	Name         string
+	Species      string
+	AgeYears     int
+	Description  string
+	BreederName  string
+	BreederEmail string
+	Picture      io.Reader
+}
+
+// CreatePet validates and stores the picture before persisting the pet, so a
+// rejected upload never leaves an object behind and the pet always references a
+// real object key.
+func (s *Service) CreatePet(ctx context.Context, cmd CreatePetCommand) (domain.Pet, error) {
+	contentType, size, body, err := picture.Validate(cmd.Picture)
+	if err != nil {
+		return domain.Pet{}, err
+	}
+	objectKey, err := s.pictures.Upload(ctx, body, size, contentType)
+	if err != nil {
+		return domain.Pet{}, fmt.Errorf("upload picture: %w", err)
+	}
+
+	petID, err := s.newID()
+	if err != nil {
+		return domain.Pet{}, err
+	}
+	pet, err := domain.NewPet(domain.NewPetParams{
+		ID:               petID,
+		StoreID:          cmd.StoreID,
+		Name:             cmd.Name,
+		Species:          cmd.Species,
+		AgeYears:         cmd.AgeYears,
+		Description:      cmd.Description,
+		BreederName:      cmd.BreederName,
+		BreederEmail:     cmd.BreederEmail,
+		PictureObjectKey: objectKey,
+		CreatedAt:        s.now(),
+	})
+	if err != nil {
+		return domain.Pet{}, err
+	}
+	if err := s.pets.Create(ctx, pet); err != nil {
+		return domain.Pet{}, fmt.Errorf("create pet: %w", err)
+	}
+	return pet, nil
+}
+
+func (s *Service) RemovePet(ctx context.Context, storeID, petID uuid.UUID) (domain.Pet, error) {
+	return s.pets.Remove(ctx, storeID, petID)
+}
+
+func (s *Service) SoldPets(ctx context.Context, storeID uuid.UUID, from, to time.Time, limit int, cursor string) ([]domain.Pet, string, error) {
+	if err := validateCursor(cursor); err != nil {
+		return nil, "", err
+	}
+	return s.pets.ListSoldByStore(ctx, storeID, from, to, limit, cursor)
+}
+
+func (s *Service) UnsoldPets(ctx context.Context, storeID uuid.UUID, limit int, cursor string) ([]domain.Pet, string, error) {
+	if err := validateCursor(cursor); err != nil {
+		return nil, "", err
+	}
+	return s.pets.ListAvailableByStore(ctx, storeID, limit, cursor)
+}
+
+func validateCursor(cursor string) error {
+	if cursor == "" {
+		return nil
+	}
+	if _, err := pagination.Decode(cursor); err != nil {
+		return &domain.ValidationError{Field: "after", Msg: "is not a valid cursor"}
+	}
+	return nil
+}

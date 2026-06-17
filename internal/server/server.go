@@ -18,16 +18,19 @@ type Server struct {
 	logger     *slog.Logger
 }
 
-func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticator) *Server {
+func New(cfg config.Config, logger *slog.Logger, authenticator *auth.Authenticator, graphqlHandler http.Handler) *Server {
 	if authenticator == nil {
 		panic("server: authenticator is required")
+	}
+	if graphqlHandler == nil {
+		panic("server: graphql handler is required")
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handleHealth)
 
 	requireAuth := auth.BasicAuth(authenticator)
-	mux.Handle("/graphql", requireAuth(http.HandlerFunc(handleGraphQLNotImplemented)))
+	mux.Handle("/graphql", requireAuth(graphqlHandler))
 
 	httpServer := &http.Server{
 		Addr:              cfg.HTTPAddr,
