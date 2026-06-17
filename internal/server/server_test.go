@@ -31,7 +31,8 @@ func TestHandleHealth_ReturnsOK(t *testing.T) {
 func TestServer_RunShutsDownWhenContextCancelled(t *testing.T) {
 	cfg := config.Config{HTTPAddr: "127.0.0.1:0", LogLevel: slog.LevelInfo}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv := New(cfg, logger, auth.NewAuthenticator(nil, nil, nil))
+	stub := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	srv := New(cfg, logger, auth.NewAuthenticator(nil, nil, nil), stub)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)

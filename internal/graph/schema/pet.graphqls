@@ -1,0 +1,68 @@
+scalar Time
+scalar Upload
+
+enum Species {
+  CAT
+  DOG
+  FROG
+}
+
+enum PetStatus {
+  AVAILABLE
+  SOLD
+  REMOVED
+}
+
+"""
+Pet is the merchant-facing view of a pet listing. It includes breeder contact
+details, which are visible only to the owning merchant; the customer-facing
+catalog in a later issue must expose a separate type without these fields.
+"""
+type Pet {
+  id: ID!
+  name: String!
+  species: Species!
+  ageYears: Int!
+  description: String!
+  pictureUrl: String!
+  status: PetStatus!
+  createdAt: Time!
+  soldAt: Time
+  breederName: String!
+  breederEmail: String!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type PetEdge {
+  node: Pet!
+  cursor: String!
+}
+
+type PetConnection {
+  edges: [PetEdge!]!
+  pageInfo: PageInfo!
+}
+
+input CreatePetInput {
+  name: String!
+  species: Species!
+  ageYears: Int!
+  picture: Upload!
+  description: String!
+  breederName: String!
+  breederEmail: String!
+}
+
+type Mutation {
+  createPet(input: CreatePetInput!): Pet!
+  removePet(id: ID!): Pet!
+}
+
+type Query {
+  soldPets(from: Time!, to: Time!, first: Int, after: String): PetConnection!
+  unsoldPets(first: Int, after: String): PetConnection!
+}

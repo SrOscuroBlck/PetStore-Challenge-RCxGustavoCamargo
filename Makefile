@@ -7,7 +7,7 @@ export GOBIN := $(LOCALBIN)
 GO ?= go
 SERVER_BIN := $(LOCALBIN)/server
 
-GQLGEN_VERSION ?= latest
+GQLGEN_VERSION ?= v0.17.91
 SQLC_VERSION ?= latest
 ATLAS_VERSION ?= latest
 GOIMPORTS_VERSION ?= latest
@@ -37,7 +37,7 @@ tools: $(LOCALBIN) ## Install developer tooling into ./bin
 .PHONY: generate
 generate: ## Run code generation (sqlc, gqlgen) once configured
 	@if [ -f sqlc.yaml ]; then sqlc generate; else echo "sqlc.yaml not present yet — skipping sqlc"; fi
-	@if [ -f gqlgen.yml ]; then gqlgen generate; else echo "gqlgen.yml not present yet — skipping gqlgen"; fi
+	@if [ -f gqlgen.yml ]; then $(GO) tool github.com/99designs/gqlgen generate; else echo "gqlgen.yml not present yet — skipping gqlgen"; fi
 
 .PHONY: build
 build: $(LOCALBIN) ## Build the server binary into ./bin
