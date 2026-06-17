@@ -25,7 +25,7 @@ func run() error {
 		return err
 	}
 
-	certPEM, keyPEM, err := tlscert.Generate([]string{"localhost", "127.0.0.1", "::1"})
+	certPEM, keyPEM, err := tlscert.Generate([]string{"localhost", "127.0.0.1", "::1", "petstore.local"})
 	if err != nil {
 		return err
 	}

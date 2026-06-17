@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+bin
+dist
+certs
+deploy/k8s
+docs
+*.md
+.env
+.env.*
+!.env.example
+coverage.out
+coverage.html

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: petstore
+  namespace: petstore
+  annotations:
+    # The API serves TLS itself, so the ingress re-encrypts to the HTTPS backend.
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: ["petstore.local"]
+      secretName: petstore-tls
+  rules:
+    - host: petstore.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: petstore-api
+                port:
+                  number: 8443
