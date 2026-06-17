@@ -8,7 +8,7 @@ This is a **monorepo** and runs entirely on your machine — no externally-hoste
 - **Frontend** — React + TypeScript customer storefront in [`frontend/`](frontend/) (see [`frontend/README.md`](frontend/README.md)).
 - **Deploy** — one command, [`make k8s-up`](#run-the-full-stack-on-minikube), brings the whole system up on local Kubernetes (Minikube) behind a same-origin gateway.
 
-> The frontend is served by a same-origin nginx gateway that proxies `/graphql` and `/pictures` to the API and injects the customer's Basic-auth credential, so the browser never holds a credential (see [`frontend/docs/adr/`](frontend/docs/adr/)).
+> The frontend is served by a same-origin nginx gateway that proxies `/graphql` and `/pictures` to the API. Browsing is open — the gateway injects an ambient customer credential, so anonymous browsing holds no secret in the browser; placing an order requires sign-in, and that signed-in credential lives in `sessionStorage` for the order session only (see [`frontend/docs/adr/`](frontend/docs/adr/)).
 
 ---
 
@@ -114,7 +114,8 @@ kubectl port-forward -n petstore svc/petstore-web 8080:80     # leave running in
 ```
 
 The gateway serves the SPA and proxies `/graphql` + `/pictures` to the API on the same origin,
-injecting the customer credential — so browsing works with no login and the browser holds no secret.
+injecting an ambient credential — so browsing works with no login and no secret in the browser
+(placing an order prompts sign-in; that credential lives in `sessionStorage` for the order session).
 (Via the ingress instead: add `petstore.local` to `/etc/hosts` → `minikube ip`, then browse
 `https://petstore.local/store/11111111-1111-1111-1111-111111111111`; on the macOS Docker driver use
 `minikube tunnel`.)

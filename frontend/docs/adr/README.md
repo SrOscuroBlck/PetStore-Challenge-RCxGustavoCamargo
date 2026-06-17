@@ -4,7 +4,7 @@ Short, dated records of the consequential decisions on the customer storefront â
 choices a future reader (or grader) would otherwise have to reverse-engineer. Each ADR states the
 context, the decision, its consequences, and the alternatives weighed.
 
-The backend repo uses the same convention (e.g. ADR-0007, the picture-proxy path). These cover the
+The backend's [`../../../docs/adr/`](../../../docs/adr/) uses the same convention (e.g. ADR-0007, the picture-proxy path). These cover the
 frontend.
 
 | # | Decision | Status |

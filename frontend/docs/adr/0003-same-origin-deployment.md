@@ -7,8 +7,8 @@
 The whole system must run locally on Docker + Minikube, and a grader must run it **without reading
 source** (reading source to find how to run = failed submission). The backend already exposes an nginx
 ingress on host `petstore.local` over self-signed TLS and **sends no CORS headers**
-(`docs/BACKEND_INTEGRATION.md` §8). The frontend is a separate repo that must compose into the same
-cluster.
+(`docs/BACKEND_INTEGRATION.md` §8). The frontend lives in this monorepo (`frontend/`) and composes into
+the same cluster as the backend.
 
 ## Decision
 

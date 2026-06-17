@@ -40,7 +40,7 @@ Trust boundaries: **browser ↔ API** (same-origin over TLS, ADR-0003) and **app
   customer — identical to a public storefront, and acceptable for a money-less local demo. Endpoints
   remain auth-gated; a direct unauthenticated API call is still rejected.
 - The `/pictures` path is intentionally unauthenticated public catalog content (backend decision,
-  ADR-0007 in the backend repo) — no customer PII is served there.
+  [`../../docs/adr/0007-picture-proxy-path.md`](../../docs/adr/0007-picture-proxy-path.md)) — no customer PII is served there.
 
 ## Content-Security-Policy (target)
 

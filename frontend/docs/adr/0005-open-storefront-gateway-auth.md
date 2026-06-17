@@ -45,7 +45,9 @@ The **browser never holds the credential** — it is not in the bundle, not in s
   payment, so this is sufficient. The data layer keeps a clean seam, so per-customer identity could be
   added later without rework.
 - The frontend has **no auth/session code** — no login route, credential store, or route guard. Less
-  surface, less to break.
+  surface, less to break. *(Superseded by [ADR-0006](0006-login-to-place-orders.md): placing an order now
+  requires sign-in, so the app does have a login dialog + a `sessionStorage`-backed credential store for
+  the order path. Browsing stays code-free per this record.)*
 
 ## Alternatives considered
 

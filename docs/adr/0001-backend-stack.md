@@ -5,11 +5,13 @@
 
 ## Context
 
-The challenge allows Go or Rust for the backend, requires PostgreSQL, Redis, and a local Docker + Minikube deployment, and forbids externally-hosted services. This repository is scoped to the backend only.
+The challenge allows Go or Rust for the backend, requires PostgreSQL, Redis, and a local Docker + Minikube deployment, and forbids externally-hosted services. This record covers the backend stack only.
+
+> **Update:** the repository later became a **monorepo** — the React customer storefront now lives in [`frontend/`](../../frontend/) alongside the Go backend at the root. See the root [`README.md`](../../README.md).
 
 ## Decision
 
-Use **Go 1.24** as the implementation language, with this stack:
+Use **Go** (version per [ADR-0006](0006-go-version-policy.md) — originally 1.24, now the latest stable) as the implementation language, with this stack:
 
 - **GraphQL** (`gqlgen`) as the API protocol — see [0002](0002-graphql-over-grpc.md).
 - **PostgreSQL** via `pgx/v5`, with **sqlc** and **Atlas** — see [0003](0003-sqlc-and-atlas.md).

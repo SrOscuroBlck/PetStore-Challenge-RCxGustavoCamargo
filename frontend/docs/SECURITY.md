@@ -76,7 +76,7 @@ TLS terminates at the API (or ingress) for every connection. Local development u
 | Deeply nested / abusive queries | Query depth and complexity limits. |
 | Oversized uploads | Maximum upload size enforced on the picture mutation. |
 | Error detail leakage | Resolvers return stable error codes + human messages; internal errors and stack details are never exposed (see [`API.md`](API.md#error-codes)). |
-| Batching abuse / N+1 | List queries are keyset-paginated with a bounded page size and a complexity cap; the only per-row resolver (`pictureUrl`) signs a URL offline with no database access, so a page of pets triggers no per-row queries. |
+| Batching abuse / N+1 | List queries are keyset-paginated with a bounded page size and a complexity cap; the only per-row resolver (`pictureUrl`) builds a static `/pictures/{key}` path from the stored object key with no database access, so a page of pets triggers no per-row queries. |
 
 ---
 

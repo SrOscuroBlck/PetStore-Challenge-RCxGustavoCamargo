@@ -39,12 +39,12 @@ accessible, responsive UI; one documented local run path.
 | 0 | Framework & docs | `.claude/` guardrails, CLAUDE.md, ADRs, threat model, this plan | ✅ Done |
 | 1 | Scaffold & data layer | Vite+TS strict, Tailwind, Router, Apollo (auth + error link + relay pagination), graphql-codegen wired to `docs/schema.graphqls`; health-check against running backend | ✅ Done |
 | 2 | Store entry | Open storefront (no login wall); auth injected at the gateway (ADR-0005); `/store/:storeId` routing + app shell | ✅ Done |
-| 3 | Catalog (Story 1) | `availablePets` infinite scroll, pet cards, skeleton/empty/error states, image fallbacks | ☐ Todo |
-| 4 | Single purchase (Story 2) | Optimistic `purchasePet` + rollback + `UNAVAILABLE` toast | ☐ Todo |
-| 5 | Cart & checkout (Stories 3–4) | Cart state + count + reviewable list; atomic `checkout`; success animation + named-unavailable-pets error | ☐ Todo |
-| 6 | Polish & a11y | Page/list transitions, `prefers-reduced-motion`, dark mode, focus management, error boundary, CSP headers | ☐ Todo |
-| 7 | Infra & run path | Dockerfile, K8s manifests, same-origin ingress routing, one-command up, grader-blind README (ADR-0003) | ☐ Todo |
-| 8 | Tests | Critical flows: auth, browse/pagination, purchase rollback, checkout named-errors, error mapping | ☐ Todo |
+| 3 | Catalog (Story 1) | `availablePets` infinite scroll, pet cards, skeleton/empty/error states, image fallbacks | ✅ Done |
+| 4 | Single purchase (Story 2) | Optimistic `purchasePet` + rollback + `UNAVAILABLE` toast | ✅ Done |
+| 5 | Cart & checkout (Stories 3–4) | Cart state + count + reviewable list; atomic `checkout`; success animation + named-unavailable-pets error | ✅ Done |
+| 6 | Polish & a11y | Page/list transitions, `prefers-reduced-motion`, dark mode, focus management, error boundary, CSP headers | ✅ Done |
+| 7 | Infra & run path | Dockerfile, K8s manifests, same-origin ingress routing, one-command up, grader-blind README (ADR-0003) | ✅ Done |
+| 8 | Tests | Critical flows: auth, browse/pagination, purchase rollback, checkout named-errors, error mapping | ✅ Done |
 
 ## Tooling support per phase
 

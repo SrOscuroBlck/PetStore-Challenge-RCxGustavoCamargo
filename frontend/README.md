@@ -4,14 +4,12 @@ The customer-facing web frontend for the Robotic Crew pet-store challenge. A cus
 store's URL, browses the pets available there, and buys them — individually or via a cart checkout. The
 merchant experience is API-only by design and has no frontend here.
 
-> **Scope:** customer user stories only. The Go GraphQL backend is a separate, finished repo; this app
-> conforms to its fixed contract.
+> **Scope:** customer user stories only. The Go GraphQL backend lives in the same monorepo (at the
+> repository root); this app conforms to its fixed GraphQL contract.
 
-## Status
-
-Early development. The development framework, architecture, and documentation are in place; application
-code is built in phases — see **[docs/PLAN.md](docs/PLAN.md)**. Run instructions below are filled in as
-the corresponding phases land (the full one-command local run arrives in the deployment phase).
+> **Running the whole system?** See the root **[`../README.md`](../README.md)** — one command
+> (`make k8s-up`) builds and deploys the backend *and* this storefront on Minikube. This page covers the
+> frontend itself and its local dev loop.
 
 ## Tech stack
 
@@ -37,7 +35,7 @@ TLS cert and no CORS — see **[ADR-0003](docs/adr/0003-same-origin-deployment.m
 
 ## Local development
 
-> Requires the backend running locally (Docker + Minikube) per the backend repo's README, and Node 20+.
+> Requires the backend running locally (Docker + Minikube) per the root [`../README.md`](../README.md), and Node 20+.
 
 ```bash
 cp .env.example .env          # set the proxy target + the dev customer credential (DEV_CUSTOMER_*)
@@ -46,10 +44,10 @@ npm run codegen               # generate typed hooks from docs/schema.graphqls
 npm run dev                   # Vite dev server; proxies /graphql (+ injected auth) and /pictures
 ```
 
-Then open `http://localhost:5173/store/<storeId>` — the catalog loads with no login step (the dev proxy
-authenticates requests). Get the demo store id from the running cluster
-(see [docs/BACKEND_INTEGRATION.md](docs/BACKEND_INTEGRATION.md) §3). The dev credential defaults to the
-demo customer `customer@petstore.local` / `demo-password`.
+Then open `http://localhost:5173/store/11111111-1111-1111-1111-111111111111` — the catalog loads with no
+login step (the dev proxy authenticates requests). The demo store id is fixed
+(`11111111-1111-1111-1111-111111111111`); the dev credential defaults to the demo customer
+`customer@petstore.local` / `demo-password`.
 
 ### Scripts
 
@@ -61,13 +59,13 @@ demo customer `customer@petstore.local` / `demo-password`.
 | `npm run typecheck` / `npm run lint` | Strict TS check / ESLint |
 | `npm test` | Unit tests for the critical flows |
 
-*(Scripts are wired up in the scaffold phase; this table is the intended interface.)*
-
 ## Running the full system (Docker + Minikube)
 
-The frontend deploys into the same local cluster as the backend, served same-origin behind the shared
-ingress. The single documented `make`-style up command and the grader-blind walkthrough are finalized in
-the deployment phase (see [docs/PLAN.md](docs/PLAN.md), Phase 7).
+The frontend is containerized (`Dockerfile`) and deployed into the same Minikube cluster as the backend,
+served same-origin behind an nginx gateway (`deploy/nginx.conf.template`) that proxies `/graphql` and
+`/pictures` to the API and injects the customer credential. Bring the whole system up with one command —
+**`make k8s-up`** from the repository root — then open the storefront at the URL it prints. See the root
+[`../README.md`](../README.md) for the full walkthrough.
 
 ## Documentation
 
