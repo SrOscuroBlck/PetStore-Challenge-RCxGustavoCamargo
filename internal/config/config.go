@@ -17,6 +17,7 @@ type Config struct {
 	LogLevel         slog.Level
 	DatabaseURL      string
 	PIIEncryptionKey []byte
+	RedisAddr        string
 	MinIOEndpoint    string
 	MinIOAccessKey   string
 	MinIOSecretKey   string
@@ -70,6 +71,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	redisAddr, err := requireEnv("REDIS_ADDR")
+	if err != nil {
+		return Config{}, err
+	}
+
 	minioEndpoint, err := requireEnv("MINIO_ENDPOINT")
 	if err != nil {
 		return Config{}, err
@@ -103,6 +109,7 @@ func Load() (Config, error) {
 		LogLevel:         logLevel,
 		DatabaseURL:      databaseURL,
 		PIIEncryptionKey: piiKey,
+		RedisAddr:        redisAddr,
 		MinIOEndpoint:    minioEndpoint,
 		MinIOAccessKey:   minioAccessKey,
 		MinIOSecretKey:   minioSecretKey,

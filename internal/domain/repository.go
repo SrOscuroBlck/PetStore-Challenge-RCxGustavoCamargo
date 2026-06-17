@@ -44,3 +44,23 @@ type PictureStore interface {
 	Upload(ctx context.Context, body io.Reader, size int64, contentType string) (objectKey string, err error)
 	PresignedURL(ctx context.Context, objectKey string) (string, error)
 }
+
+// CatalogPage is one page of a store's available-pets listing together with the
+// cursor to the next page — the unit a CatalogCache stores and returns.
+type CatalogPage struct {
+	Pets       []Pet
+	NextCursor string
+}
+
+// CatalogCache caches a store's available-pets listing per page (cache-aside).
+// It is an accelerator only: every method degrades to a miss or no-op when the
+// backing store is unavailable, so callers always fall back to the source of
+// truth. The implementation owns the key schema and invalidation mechanism;
+// callers pass the logical coordinates (store, page) and never raw keys. Any
+// operation that changes a store's available pets — create, remove, and a sale
+// (the purchase use case in a later issue) — must call InvalidateStore.
+type CatalogCache interface {
+	GetAvailable(ctx context.Context, storeID uuid.UUID, limit int, cursor string) (CatalogPage, bool)
+	SetAvailable(ctx context.Context, storeID uuid.UUID, limit int, cursor string, page CatalogPage)
+	InvalidateStore(ctx context.Context, storeID uuid.UUID)
+}
