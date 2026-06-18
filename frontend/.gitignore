@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Env & secrets — never commit (use .env.example for documented, value-less vars)
+.env
+.env.*
+!.env.example
+
+# Claude Code — share the framework, keep personal/local settings out
+.claude/settings.local.json
+
+# Logs & editor cruft
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+CLAUDE.md

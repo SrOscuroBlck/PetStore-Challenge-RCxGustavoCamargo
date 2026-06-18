@@ -1,0 +1,69 @@
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+  }
+
+  /* Friendly rounded display face for headings (no squared/techno tracking). */
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+
+  /* Visible, consistent focus for keyboard users (a11y bar). */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-bg;
+  }
+}
+
+@layer components {
+  /* Eyebrow: small uppercase orange label above a heading. `accent` is AA on light. */
+  .eyebrow {
+    @apply font-display text-xs font-semibold uppercase tracking-eyebrow text-accent;
+  }
+
+  /* Soft rounded orange underline under a section heading (friendly, not an angular tab). */
+  .rule-soft {
+    @apply relative pb-4;
+  }
+  .rule-soft::after {
+    content: '';
+    @apply absolute bottom-0 left-0 block h-1 w-14 rounded-full bg-primary;
+  }
+
+  /* Paw-print bullets for feature lists (SVG mask, themable via bg-primary). Apply to a <ul>. */
+  .list-paw > li {
+    @apply relative pl-7;
+  }
+  .list-paw > li::before {
+    content: '';
+    @apply absolute left-0 top-[0.3em] h-3.5 w-3.5 bg-primary;
+    -webkit-mask: var(--paw-mask) center / contain no-repeat;
+    mask: var(--paw-mask) center / contain no-repeat;
+  }
+}
+
+@layer utilities {
+  /* Skip-to-content link: visually hidden until focused. */
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

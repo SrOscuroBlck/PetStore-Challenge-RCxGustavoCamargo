@@ -48,6 +48,14 @@ var demoCatalog = []demoPet{
 	{"Bubbles", domain.SpeciesFrog, 2, "Playful aquatic frog, always swimming."},
 }
 
+// store2Catalog stocks a second store so multi-tenant isolation is demonstrable:
+// the second merchant sees only these pets, and cannot touch the first store's.
+var store2Catalog = []demoPet{
+	{"Shadow", domain.SpeciesCat, 4, "Sleek black cat, the second store's mascot."},
+	{"Ziggy", domain.SpeciesDog, 3, "Spotted dalmatian with endless energy."},
+	{"Coco", domain.SpeciesFrog, 1, "Tiny brown frog who loves a humid tank."},
+}
+
 // petImages holds the bundled demo photos. They are embedded (not fetched at
 // runtime) so the seeded store has real pictures while the system stays fully
 // local. See assets/CREDITS.md for sources.

@@ -6,7 +6,7 @@
 ## Context
 
 ADR-0005 stores pictures in MinIO and leaves open whether clients fetch them via
-**presigned URLs** or a **proxied path**. The customer frontend (React, separate repo) now forces
+**presigned URLs** or a **proxied path**. The customer frontend (React, now in [`frontend/`](../../frontend/)) forces
 the choice. A presigned MinIO URL is signed against a specific host, and in our local Minikube setup
 that host is the in-cluster `minio:9000` over plain HTTP — which a browser on the host cannot resolve
 and which would be mixed content against an HTTPS single-page app. Making presigned URLs work in a

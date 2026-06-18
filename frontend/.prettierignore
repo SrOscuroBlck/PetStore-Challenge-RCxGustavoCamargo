@@ -1,0 +1,5 @@
+dist
+coverage
+src/__generated__
+docs
+package-lock.json

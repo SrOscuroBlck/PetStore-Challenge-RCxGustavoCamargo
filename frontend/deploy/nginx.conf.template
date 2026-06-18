@@ -1,0 +1,60 @@
+# Same-origin gateway for the customer storefront (frontend ADR-0003/0005/0006).
+# Serves the SPA and proxies the API on the same origin so the browser holds no
+# credential: the customer Basic auth is injected here, and only when the request
+# carries none — a signed-in customer's own credential passes through for orders.
+
+# Inject the ambient browse credential when the client sent no Authorization;
+# otherwise forward the client's own. AMBIENT_AUTH is substituted at container
+# start from the deployment's secret.
+map $http_authorization $forwarded_authorization {
+    ""      "${AMBIENT_AUTH}";
+    default $http_authorization;
+}
+
+# Reuse upstream TLS connections to the API instead of a fresh handshake per
+# request — at 1k concurrent browsers the per-request handshake dominates gateway
+# CPU and latency (see docs/PERFORMANCE.md).
+upstream api {
+    server petstore-api:8443;
+    keepalive 64;
+}
+
+server {
+    listen 80;
+    server_name _;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # GraphQL — re-encrypt to the API's self-signed TLS, injecting/forwarding auth.
+    location = /graphql {
+        proxy_pass https://api/graphql;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_ssl_server_name on;
+        proxy_ssl_name petstore-api;
+        proxy_ssl_verify off;
+        proxy_set_header Host $host;
+        proxy_set_header Authorization $forwarded_authorization;
+    }
+
+    # Pet pictures are public catalog content — proxied without auth.
+    location /pictures/ {
+        proxy_pass https://api/pictures/;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_ssl_server_name on;
+        proxy_ssl_name petstore-api;
+        proxy_ssl_verify off;
+        proxy_set_header Host $host;
+    }
+
+    # Client-side routing: every other path serves the SPA shell.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

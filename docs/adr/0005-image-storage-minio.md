@@ -9,7 +9,7 @@ Each pet has a picture. The options are storing the bytes in Postgres (`bytea`),
 
 ## Decision
 
-Store pictures in self-hosted **MinIO** (S3-compatible). Postgres stores only the object key; images are served via presigned or proxied URLs and never streamed through GraphQL resolvers.
+Store pictures in self-hosted **MinIO** (S3-compatible). Postgres stores only the object key; images are served to clients over a proxied path and never streamed through GraphQL resolvers. (The specific serving mechanism — a same-origin `/pictures/{key}` proxy rather than presigned URLs — is settled in [ADR-0007](0007-picture-proxy-path.md).)
 
 ## Consequences
 

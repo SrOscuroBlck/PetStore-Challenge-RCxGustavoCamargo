@@ -24,7 +24,21 @@ import (
 	"roboticCrewChallenge/internal/server"
 )
 
-const catalogCacheTTL = 60 * time.Second
+// Catalog correctness comes from generation-bump invalidation on every write, not
+// from this TTL — so it is only a memory-reclamation backstop for stores that go
+// quiet, set well above a browsing session to avoid needless refills (and the
+// refill latency spike they cause under heavy concurrent load). A write still
+// makes its store's listings reachable-stale for zero seconds.
+const catalogCacheTTL = 10 * time.Minute
+
+// The catalog read path touches Redis on every request (generation + page lookup),
+// so the pool is sized for the concurrent-user target and keeps idle connections
+// warm: a cold pool forced to open connections under a traffic burst is the
+// dominant source of first-request latency spikes (see docs/PERFORMANCE.md).
+const (
+	redisPoolSize     = 200
+	redisMinIdleConns = 50
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -73,7 +87,11 @@ func run() error {
 		postgres.NewStoreRepository(pool),
 	)
 
-	redisClient := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:         cfg.RedisAddr,
+		PoolSize:     redisPoolSize,
+		MinIdleConns: redisMinIdleConns,
+	})
 	defer func() { _ = redisClient.Close() }()
 	pingCtx, cancelPing := context.WithTimeout(ctx, 2*time.Second)
 	if err := redisClient.Ping(pingCtx).Err(); err != nil {

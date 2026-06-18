@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: petstore-web
+  namespace: petstore
+  labels:
+    app: petstore-web
+    app.kubernetes.io/part-of: petstore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: petstore-web
+  template:
+    metadata:
+      labels:
+        app: petstore-web
+    spec:
+      containers:
+        - name: web
+          image: petstore-web:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          # The gateway injects this ambient customer credential on /graphql when a
+          # request carries none (open browsing); signed-in orders pass their own.
+          env:
+            - name: AMBIENT_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: petstore-web-secret
+                  key: AMBIENT_AUTH
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: petstore-web
+  namespace: petstore
+  labels:
+    app: petstore-web
+spec:
+  selector:
+    app: petstore-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

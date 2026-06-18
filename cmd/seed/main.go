@@ -29,10 +29,12 @@ import (
 
 const (
 	merchantEmail       = "merchant@petstore.local"
+	secondMerchantEmail = "merchant2@petstore.local"
 	customerEmail       = "customer@petstore.local"
 	secondCustomerEmail = "customer2@petstore.local"
 	demoPassword        = "demo-password"
 	storeName           = "Demo Store"
+	secondStoreName     = "Second Store"
 	breederName         = "Demo Breeder"
 	breederEmail        = "breeder@petstore.local"
 )
@@ -41,9 +43,13 @@ const (
 // the purchase/checkout race (one customer buys a pet the other still sees).
 var customerEmails = []string{customerEmail, secondCustomerEmail}
 
-// demoStoreID is fixed so a fresh deployment always exposes the storefront at the
-// same URL; the README and graders can rely on /store/<this id> without looking it up.
-var demoStoreID = uuid.MustParse("11111111-1111-1111-1111-111111111111")
+// Store ids are fixed so a fresh deployment always exposes the storefront at the
+// same URL (the README/graders rely on /store/<id>), and so the second store —
+// which exists to demonstrate multi-tenant isolation — is addressable too.
+var (
+	demoStoreID  = uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	demoStore2ID = uuid.MustParse("22222222-2222-2222-2222-222222222222")
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -94,8 +100,10 @@ func run() error {
 	petRepo := postgres.NewPetRepository(pool, encryptor)
 	catalog := listing.NewService(petRepo, pictures, rediscache.NoOp{})
 
-	storeID, err := seedMerchantWithStore(ctx, merchants, stores)
-	if err != nil {
+	if err := seedMerchantWithStore(ctx, merchants, stores, merchantEmail, demoStoreID, storeName); err != nil {
+		return err
+	}
+	if err := seedMerchantWithStore(ctx, merchants, stores, secondMerchantEmail, demoStore2ID, secondStoreName); err != nil {
 		return err
 	}
 	for _, email := range customerEmails {
@@ -103,16 +111,22 @@ func run() error {
 			return err
 		}
 	}
-	seeded, err := seedDemoPets(ctx, catalog, petRepo, storeID)
+	seeded, err := seedDemoPets(ctx, catalog, petRepo, demoStoreID, demoCatalog)
+	if err != nil {
+		return err
+	}
+	seeded2, err := seedDemoPets(ctx, catalog, petRepo, demoStore2ID, store2Catalog)
 	if err != nil {
 		return err
 	}
 
 	slog.Info("demo data ready",
 		"merchant", merchantEmail,
+		"secondMerchant", secondMerchantEmail,
 		"customers", customerEmails,
-		"storeId", storeID,
-		"petsSeeded", seeded,
+		"storeId", demoStoreID,
+		"secondStoreId", demoStore2ID,
+		"petsSeeded", seeded+seeded2,
 	)
 	return nil
 }
@@ -158,49 +172,42 @@ func pictureStore(ctx context.Context) (*objectstore.PictureStore, error) {
 	return store, nil
 }
 
-func seedMerchantWithStore(ctx context.Context, merchants *postgres.MerchantRepository, stores *postgres.StoreRepository) (uuid.UUID, error) {
+func seedMerchantWithStore(ctx context.Context, merchants *postgres.MerchantRepository, stores *postgres.StoreRepository, email string, storeID uuid.UUID, name string) error {
 	hash, err := crypto.HashPassword(demoPassword)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("hash merchant password: %w", err)
+		return fmt.Errorf("hash merchant password: %w", err)
 	}
-	merchant, err := domain.NewMerchant(uuid.New(), merchantEmail, hash, time.Now().UTC())
+	merchant, err := domain.NewMerchant(uuid.New(), email, hash, time.Now().UTC())
 	if err != nil {
-		return uuid.Nil, err
+		return err
 	}
 
 	merchantID := merchant.ID
 	if err := merchants.Create(ctx, merchant); err != nil {
 		if !errors.Is(err, domain.ErrEmailInUse) {
-			return uuid.Nil, fmt.Errorf("create merchant: %w", err)
+			return fmt.Errorf("create merchant %s: %w", email, err)
 		}
-		existing, err := merchants.GetByEmail(ctx, merchantEmail)
+		existing, err := merchants.GetByEmail(ctx, email)
 		if err != nil {
-			return uuid.Nil, fmt.Errorf("look up existing merchant: %w", err)
+			return fmt.Errorf("look up existing merchant %s: %w", email, err)
 		}
 		merchantID = existing.ID
 	}
 
-	store, err := domain.NewStore(demoStoreID, merchantID, storeName, time.Now().UTC())
+	store, err := domain.NewStore(storeID, merchantID, name, time.Now().UTC())
 	if err != nil {
-		return uuid.Nil, err
+		return err
 	}
-	if err := stores.Create(ctx, store); err != nil {
-		if !errors.Is(err, domain.ErrStoreAlreadyExists) {
-			return uuid.Nil, fmt.Errorf("create store: %w", err)
-		}
-		existing, err := stores.GetByMerchantID(ctx, merchantID)
-		if err != nil {
-			return uuid.Nil, fmt.Errorf("look up existing store: %w", err)
-		}
-		return existing.ID, nil
+	if err := stores.Create(ctx, store); err != nil && !errors.Is(err, domain.ErrStoreAlreadyExists) {
+		return fmt.Errorf("create store %s: %w", name, err)
 	}
-	return store.ID, nil
+	return nil
 }
 
 // seedDemoPets fills the store with the demo catalog, but only when the store has
 // no pets at all, so re-running the seeder never piles up duplicate listings — even
 // after a grader has bought or removed some of them.
-func seedDemoPets(ctx context.Context, catalog *listing.Service, pets *postgres.PetRepository, storeID uuid.UUID) (int, error) {
+func seedDemoPets(ctx context.Context, catalog *listing.Service, pets *postgres.PetRepository, storeID uuid.UUID, petList []demoPet) (int, error) {
 	count, err := pets.CountByStore(ctx, storeID)
 	if err != nil {
 		return 0, err
@@ -213,7 +220,7 @@ func seedDemoPets(ctx context.Context, catalog *listing.Service, pets *postgres.
 		return 0, err
 	}
 	used := make(map[domain.Species]int)
-	for _, pet := range demoCatalog {
+	for _, pet := range petList {
 		pics := images[pet.species]
 		picture := pics[used[pet.species]%len(pics)]
 		used[pet.species]++
@@ -232,7 +239,7 @@ func seedDemoPets(ctx context.Context, catalog *listing.Service, pets *postgres.
 			return 0, fmt.Errorf("create pet %q: %w", pet.name, err)
 		}
 	}
-	return len(demoCatalog), nil
+	return len(petList), nil
 }
 
 func seedCustomer(ctx context.Context, customers *postgres.CustomerRepository, email string) error {

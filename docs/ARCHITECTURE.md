@@ -173,6 +173,8 @@ Reads dominate (catalog browsing) and must stay fast for 1k concurrent users. Th
 
 PostgreSQL remains the single source of truth; Redis is strictly an accelerator and is always safe to lose.
 
+This is not just asserted — it is measured. [`PERFORMANCE.md`](PERFORMANCE.md) documents a reproducible in-cluster k6 load test (`make load-test`) that drives the catalog read at 1k concurrent users and **asserts** p95 < 2s as a pass/fail threshold.
+
 ---
 
 ## 6. Pagination

@@ -97,9 +97,14 @@ migrate-lint: ## Lint migrations for unsafe changes
 
 K8S_NS ?= petstore
 K8S_IMAGE ?= petstore-api:dev
+WEB_IMAGE ?= petstore-web:dev
 K8S_DIR := deploy/k8s
 # Must match demoStoreID in cmd/seed; the seeder pins the demo store to this id.
 DEMO_STORE_ID := 11111111-1111-1111-1111-111111111111
+
+# Load test (k6) knobs — defaults encode the challenge target: 1k concurrent users.
+LOAD_VUS ?= 1000
+LOAD_DURATION ?= 30s
 
 .PHONY: k8s-up
 k8s-up: ## Bring up the full stack on Minikube (single command)
@@ -111,6 +116,8 @@ k8s-up: ## Bring up the full stack on Minikube (single command)
 	minikube addons enable ingress >/dev/null; \
 	echo ">> building API image into minikube"; \
 	minikube image build -t $(K8S_IMAGE) -f deploy/docker/Dockerfile .; \
+	echo ">> building web (frontend) image into minikube"; \
+	minikube image build -t $(WEB_IMAGE) frontend; \
 	echo ">> applying namespace + config"; \
 	kubectl apply -f $(K8S_DIR)/namespace.yaml -f $(K8S_DIR)/config.yaml; \
 	echo ">> creating purpose-scoped secrets (values never committed) and migrations configmap"; \
@@ -127,6 +134,9 @@ k8s-up: ## Bring up the full stack on Minikube (single command)
 	  kubectl -n $(K8S_NS) create secret generic petstore-minio-secret \
 	    --from-literal=MINIO_ACCESS_KEY=minioadmin \
 	    --from-literal=MINIO_SECRET_KEY=minioadmin; \
+	kubectl -n $(K8S_NS) get secret petstore-web-secret >/dev/null 2>&1 || \
+	  kubectl -n $(K8S_NS) create secret generic petstore-web-secret \
+	    --from-literal=AMBIENT_AUTH="Basic $$(printf 'customer@petstore.local:demo-password' | base64)"; \
 	kubectl -n $(K8S_NS) get secret petstore-tls >/dev/null 2>&1 || { \
 	  echo ">> generating TLS cert (localhost + petstore.local)"; \
 	  $(GO) run ./cmd/gencert; \
@@ -137,22 +147,62 @@ k8s-up: ## Bring up the full stack on Minikube (single command)
 	kubectl apply -f $(K8S_DIR)/postgres.yaml -f $(K8S_DIR)/redis.yaml -f $(K8S_DIR)/minio.yaml; \
 	kubectl -n $(K8S_NS) rollout status deploy/postgres --timeout=180s; \
 	kubectl -n $(K8S_NS) rollout status deploy/minio --timeout=180s; \
-	echo ">> deploying API (runs migrations first) + ingress"; \
-	kubectl apply -f $(K8S_DIR)/api.yaml -f $(K8S_DIR)/ingress.yaml; \
+	echo ">> deploying API (runs migrations first)"; \
+	kubectl apply -f $(K8S_DIR)/api.yaml; \
 	kubectl -n $(K8S_NS) rollout status deploy/petstore-api --timeout=180s; \
 	echo ">> seeding demo accounts and catalog"; \
 	kubectl -n $(K8S_NS) delete job petstore-seed --ignore-not-found; \
 	kubectl apply -f $(K8S_DIR)/seed-job.yaml; \
 	kubectl -n $(K8S_NS) wait --for=condition=complete job/petstore-seed --timeout=120s; \
+	echo ">> deploying web storefront + ingress"; \
+	kubectl apply -f $(K8S_DIR)/web.yaml -f $(K8S_DIR)/ingress.yaml; \
+	kubectl -n $(K8S_NS) rollout status deploy/petstore-web --timeout=180s; \
 	echo ""; \
-	echo "Stack is up. Reach the API over TLS from your host:"; \
-	echo "  kubectl port-forward -n $(K8S_NS) svc/petstore-api 8443:8443   # leave running"; \
+	echo "Stack is up. Open the customer storefront:"; \
+	echo "  kubectl port-forward -n $(K8S_NS) svc/petstore-web 8080:80   # leave running"; \
+	echo "  then open http://localhost:8080/store/$(DEMO_STORE_ID)"; \
+	echo "  (or, via ingress: add 'petstore.local' to /etc/hosts -> minikube ip, browse https://petstore.local/store/$(DEMO_STORE_ID))"; \
 	echo ""; \
-	echo "Demo store id: $(DEMO_STORE_ID)"; \
-	echo "  Customer storefront: open /store/$(DEMO_STORE_ID) in the frontend"; \
-	echo "  Health:   curl -k https://localhost:8443/healthz"; \
-	echo "  Catalog:  curl -k -u customer@petstore.local:demo-password -H 'Content-Type: application/json' \\"; \
-	echo "            -d '{\"query\":\"{ availablePets(storeId:\\\"$(DEMO_STORE_ID)\\\", first:12){ edges{ node{ name species pictureUrl } } pageInfo{ hasNextPage endCursor } } }\"}' https://localhost:8443/graphql"
+	echo "Direct API access (merchant ops / curl) over TLS:"; \
+	echo "  kubectl port-forward -n $(K8S_NS) svc/petstore-api 8443:8443"; \
+	echo "  curl -k https://localhost:8443/healthz"; \
+	echo "  Demo store id: $(DEMO_STORE_ID)"
+
+.PHONY: k8s-redeploy-api
+k8s-redeploy-api: ## Rebuild only the API image and restart its deployment (fast update, no full k8s-up)
+	minikube image build -t $(K8S_IMAGE) -f deploy/docker/Dockerfile .
+	kubectl -n $(K8S_NS) rollout restart deploy/petstore-api
+	kubectl -n $(K8S_NS) rollout status deploy/petstore-api --timeout=180s
+
+.PHONY: k8s-redeploy-web
+k8s-redeploy-web: ## Rebuild only the web (frontend) image and restart its deployment (fast update, no full k8s-up)
+	minikube image build -t $(WEB_IMAGE) frontend
+	kubectl -n $(K8S_NS) rollout restart deploy/petstore-web
+	kubectl -n $(K8S_NS) rollout status deploy/petstore-web --timeout=180s
+
+.PHONY: web-forward
+web-forward: ## Port-forward the storefront to http://localhost:8080, auto-reconnecting across pod restarts (leave running)
+	@echo ">> Storefront: http://localhost:8080/store/$(DEMO_STORE_ID)  (Ctrl-C to stop)"; \
+	while true; do \
+	  kubectl -n $(K8S_NS) port-forward svc/petstore-web 8080:80 || true; \
+	  echo ">> web port-forward dropped (pod restart?) — reconnecting in 2s…"; sleep 2; \
+	done
+
+.PHONY: api-forward
+api-forward: ## Port-forward the API to https://localhost:8443, auto-reconnecting across pod restarts (leave running)
+	@echo ">> API: https://localhost:8443/playground  (Ctrl-C to stop)"; \
+	while true; do \
+	  kubectl -n $(K8S_NS) port-forward svc/petstore-api 8443:8443 || true; \
+	  echo ">> api port-forward dropped (pod restart?) — reconnecting in 2s…"; sleep 2; \
+	done
+
+.PHONY: db-forward
+db-forward: ## Port-forward Postgres to localhost:5440, auto-reconnecting across pod restarts (leave running)
+	@echo ">> Postgres: localhost:5440 (petstore/petstore/petstore)  (Ctrl-C to stop)"; \
+	while true; do \
+	  kubectl -n $(K8S_NS) port-forward svc/postgres 5440:5432 || true; \
+	  echo ">> db port-forward dropped (pod restart?) — reconnecting in 2s…"; sleep 2; \
+	done
 
 .PHONY: k8s-down
 k8s-down: ## Tear down the stack (keeps the Minikube VM)
@@ -161,3 +211,29 @@ k8s-down: ## Tear down the stack (keeps the Minikube VM)
 .PHONY: logs
 logs: ## Tail the API logs
 	kubectl -n $(K8S_NS) logs -f deploy/petstore-api -c api
+
+.PHONY: load-test
+load-test: ## Prove the <2s / 1k-user target (frontend + backend): run the k6 storefront load test in-cluster (needs make k8s-up)
+	@set -euo pipefail; \
+	command -v kubectl >/dev/null || { echo "kubectl not found"; exit 1; }; \
+	kubectl -n $(K8S_NS) get svc petstore-web >/dev/null 2>&1 || { echo "stack not up — run 'make k8s-up' first"; exit 1; }; \
+	echo ">> (re)creating k6 script configmap from loadtest/storefront.js"; \
+	kubectl -n $(K8S_NS) delete configmap petstore-loadtest-script --ignore-not-found >/dev/null; \
+	kubectl -n $(K8S_NS) create configmap petstore-loadtest-script --from-file=storefront.js=loadtest/storefront.js >/dev/null; \
+	echo ">> launching k6 job (VUS=$(LOAD_VUS), DURATION=$(LOAD_DURATION)) against the storefront gateway"; \
+	kubectl -n $(K8S_NS) delete job petstore-loadtest --ignore-not-found >/dev/null; \
+	sed -e 's/__VUS__/$(LOAD_VUS)/' -e 's/__DURATION__/$(LOAD_DURATION)/' $(K8S_DIR)/loadtest-job.yaml | kubectl apply -f - >/dev/null; \
+	echo ">> waiting for the k6 pod to start…"; \
+	for i in $$(seq 1 60); do \
+	  phase=$$(kubectl -n $(K8S_NS) get pods -l app=petstore-loadtest -o jsonpath='{.items[0].status.phase}' 2>/dev/null || true); \
+	  case "$$phase" in Running|Succeeded|Failed) break;; esac; \
+	  sleep 2; \
+	done; \
+	echo ">> streaming k6 output:"; echo; \
+	kubectl -n $(K8S_NS) logs -f job/petstore-loadtest; \
+	echo; \
+	if kubectl -n $(K8S_NS) wait --for=condition=complete job/petstore-loadtest --timeout=10s >/dev/null 2>&1; then \
+	  echo "PASS — all thresholds met (p95 < 2s, errors < 1%)."; \
+	else \
+	  echo "FAIL — k6 exited non-zero (a threshold was breached or the run errored). See output above."; exit 1; \
+	fi

@@ -15,6 +15,10 @@ linters:
     - unconvert
   exclusions:
     generated: lax
+    paths:
+      # The React app (and its node_modules, which ships incidental Go files) is
+      # not part of the Go module's lint surface.
+      - frontend
     rules:
       - path: _test\.go
         linters:

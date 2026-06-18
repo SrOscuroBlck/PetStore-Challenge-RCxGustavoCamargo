@@ -1,0 +1,23 @@
+# Customer-only. Returns PublicPet (no breeder fields). Relay cursor connection.
+# Optional `species` filters server-side before pagination (omit for all species).
+query AvailablePets($storeId: ID!, $species: Species, $first: Int, $after: String) {
+  availablePets(storeId: $storeId, species: $species, first: $first, after: $after) {
+    edges {
+      node {
+        id
+        name
+        species
+        ageYears
+        description
+        pictureUrl
+        status
+        createdAt
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

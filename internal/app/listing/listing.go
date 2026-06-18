@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/singleflight"
 
 	"roboticCrewChallenge/internal/domain"
 	"roboticCrewChallenge/internal/platform/id"
@@ -20,6 +21,7 @@ type Service struct {
 	cache    domain.CatalogCache
 	newID    func() (uuid.UUID, error)
 	now      func() time.Time
+	loads    singleflight.Group
 }
 
 func NewService(pets domain.PetRepository, pictures domain.PictureStore, cache domain.CatalogCache) *Service {
@@ -116,12 +118,42 @@ func (s *Service) availableByStore(ctx context.Context, storeID uuid.UUID, speci
 	if page, ok := s.cache.GetAvailable(ctx, storeID, species, limit, cursor); ok {
 		return page.Pets, page.NextCursor, nil
 	}
-	pets, nextCursor, err := s.pets.ListAvailableByStore(ctx, storeID, species, limit, cursor)
+	page, err := s.loadAndCacheAvailable(ctx, storeID, species, limit, cursor)
 	if err != nil {
 		return nil, "", err
 	}
-	s.cache.SetAvailable(ctx, storeID, species, limit, cursor, domain.CatalogPage{Pets: pets, NextCursor: nextCursor})
-	return pets, nextCursor, nil
+	return page.Pets, page.NextCursor, nil
+}
+
+// loadAndCacheAvailable fetches a page from the source of truth and caches it,
+// coalescing concurrent misses for the same page through singleflight so a cache
+// expiry under heavy concurrency triggers one database read rather than a
+// stampede of identical reads (see docs/PERFORMANCE.md).
+func (s *Service) loadAndCacheAvailable(ctx context.Context, storeID uuid.UUID, species *domain.Species, limit int, cursor string) (domain.CatalogPage, error) {
+	result, err, _ := s.loads.Do(availableLoadKey(storeID, species, limit, cursor), func() (any, error) {
+		if page, ok := s.cache.GetAvailable(ctx, storeID, species, limit, cursor); ok {
+			return page, nil
+		}
+		pets, nextCursor, err := s.pets.ListAvailableByStore(ctx, storeID, species, limit, cursor)
+		if err != nil {
+			return domain.CatalogPage{}, err
+		}
+		page := domain.CatalogPage{Pets: pets, NextCursor: nextCursor}
+		s.cache.SetAvailable(ctx, storeID, species, limit, cursor, page)
+		return page, nil
+	})
+	if err != nil {
+		return domain.CatalogPage{}, err
+	}
+	return result.(domain.CatalogPage), nil
+}
+
+func availableLoadKey(storeID uuid.UUID, species *domain.Species, limit int, cursor string) string {
+	speciesKey := "all"
+	if species != nil {
+		speciesKey = string(*species)
+	}
+	return fmt.Sprintf("%s|%s|%d|%s", storeID, speciesKey, limit, cursor)
 }
 
 func validateCursor(cursor string) error {

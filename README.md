@@ -1,10 +1,14 @@
-# Pet Store — Backend
+# Pet Store
 
-A backend for a multi-tenant pet store. **Merchants** manage their store's pet listings through a GraphQL API; **customers** browse available pets and purchase them individually or via a cart checkout. Built for the Robotic Crew challenge (`docs/challenge.md`).
+A multi-tenant pet store. **Merchants** manage their store's pet listings through a GraphQL API; **customers** browse available pets in a web storefront and purchase them individually or via a cart checkout. Built for the Robotic Crew challenge (`docs/challenge.md`).
 
-This repository is the **backend only** and runs entirely on your machine — no externally-hosted services.
+This is a **monorepo** and runs entirely on your machine — no externally-hosted services:
 
-> **Status:** early development. This README documents what has been **decided** (stack and architecture). Operational sections — how to run it, configure it, and call the API — are added to this file and to [`docs/API.md`](docs/API.md) **as each piece is actually built**, so the documentation always reflects the code rather than predicting it.
+- **Backend** (this directory) — Go GraphQL API, Postgres, Redis, MinIO. Code under `cmd/`, `internal/`, `db/`.
+- **Frontend** — React + TypeScript customer storefront in [`frontend/`](frontend/) (see [`frontend/README.md`](frontend/README.md)).
+- **Deploy** — one command, [`make k8s-up`](#run-the-full-stack-on-minikube), brings the whole system up on local Kubernetes (Minikube) behind a same-origin gateway.
+
+> The frontend is served by a same-origin nginx gateway that proxies `/graphql` and `/pictures` to the API. Browsing is open — the gateway injects an ambient customer credential, so anonymous browsing holds no secret in the browser; placing an order requires sign-in, and that signed-in credential lives in `sessionStorage` for the order session only (see [`frontend/docs/adr/`](frontend/docs/adr/)).
 
 ---
 
@@ -68,31 +72,34 @@ variables currently in use (more are added as features that need them land).
 
 ---
 
-## Run on Minikube (full stack)
+## Run the full stack on Minikube
 
-Runs the entire system — Postgres, Redis, MinIO, database migrations, and the API — on local
-Kubernetes via Minikube. Each component is its own Deployment + Service; the API talks to them
-over in-cluster DNS. Requires **Docker** (running), **minikube**, **kubectl**, **openssl**, and Go 1.25.
+Runs the **entire system** — Postgres, Redis, MinIO, database migrations, the Go API, and the React
+storefront — on local Kubernetes via Minikube. Each component is its own Deployment + Service.
+Requires **Docker** (running), **minikube**, **kubectl**, **openssl**, **Node 20**, and Go 1.25.
 
 ```bash
-make k8s-up      # one command: start minikube, build the image, apply manifests,
-                 # run migrations, and seed demo accounts
+make k8s-up      # one command: start minikube, build the API + web images, apply manifests,
+                 # run migrations, seed a demo catalog, and roll out the storefront
 ```
 
-`make k8s-up` starts Minikube (if needed), enables the ingress addon, builds the API image into the
-cluster, applies the manifests in [`deploy/k8s/`](deploy/k8s/), creates the Secrets and the
-migrations ConfigMap (secret values are generated at deploy time, never committed), brings up
-Postgres/Redis/MinIO, then rolls out the API. **Migrations run automatically as an init container
-before the API serves traffic.** A one-shot Job then seeds demo accounts and a catalog of pets:
+It builds both images into the cluster, applies the manifests in [`deploy/k8s/`](deploy/k8s/), creates
+the Secrets and migrations ConfigMap (secret values generated at deploy time, never committed), brings
+up Postgres/Redis/MinIO, rolls out the API (**migrations run as an init container before it serves**),
+seeds demo data, then rolls out the web storefront behind the gateway. When it finishes it prints the
+storefront URL. A one-shot Job seeds demo accounts and a catalog of pets:
 
 | Role | Email | Password |
 |---|---|---|
-| Merchant (owns a "Demo Store") | `merchant@petstore.local` | `demo-password` |
+| Merchant (owns "Demo Store") | `merchant@petstore.local` | `demo-password` |
+| Merchant (owns "Second Store") | `merchant2@petstore.local` | `demo-password` |
 | Customer | `customer@petstore.local` | `demo-password` |
 | Customer (second shopper) | `customer2@petstore.local` | `demo-password` |
 
-The second customer lets you exercise the purchase/checkout race: buy a pet as one shopper and watch
-the other get a human-readable `UNAVAILABLE` error.
+The **second customer** lets you exercise the purchase/checkout race (buy a pet as one shopper and
+watch the other get a human-readable `UNAVAILABLE` error). The **second merchant** owns a separate
+store (`22222222-2222-2222-2222-222222222222`, stocked with its own pets) so you can demonstrate
+store isolation: merchant 2 sees only its own pets and gets `NOT_FOUND` on merchant 1's.
 
 
 The store is pre-filled with a catalog of cats, dogs, and frogs (with real bundled photos —
@@ -102,7 +109,21 @@ browsable immediately. The demo store id is fixed —
 `/store/11111111-1111-1111-1111-111111111111`. `make k8s-up` also prints it at the end. Seeding is
 idempotent: re-running leaves existing demo data untouched.
 
-**Reach the API over TLS** from your host (the API serves HTTPS only):
+**Open the customer storefront** — port-forward the web gateway and browse to the demo store:
+
+```bash
+kubectl port-forward -n petstore svc/petstore-web 8080:80     # leave running in one terminal
+# then open http://localhost:8080/store/11111111-1111-1111-1111-111111111111
+```
+
+The gateway serves the SPA and proxies `/graphql` + `/pictures` to the API on the same origin,
+injecting an ambient credential — so browsing works with no login and no secret in the browser
+(placing an order prompts sign-in; that credential lives in `sessionStorage` for the order session).
+(Via the ingress instead: add `petstore.local` to `/etc/hosts` → `minikube ip`, then browse
+`https://petstore.local/store/11111111-1111-1111-1111-111111111111`; on the macOS Docker driver use
+`minikube tunnel`.)
+
+**Reach the API directly over TLS** (merchant operations, curl, the playground) — the API serves HTTPS only:
 
 ```bash
 kubectl port-forward -n petstore svc/petstore-api 8443:8443   # leave running in one terminal
@@ -147,15 +168,24 @@ an `$picture: Upload!` variable, then use Altair's **Add file** control (under V
 to that variable.
 
 ```bash
-make logs        # tail the API logs
-make k8s-down    # tear the stack down (removes the petstore namespace)
+make load-test          # prove the <2s / 1k-user target (frontend + backend): in-cluster k6 load test (see docs/PERFORMANCE.md)
+make k8s-redeploy-api    # after a backend code change: rebuild only the API image + restart it (no full k8s-up)
+make k8s-redeploy-web    # after a frontend change: rebuild only the web image + restart it
+make logs               # tail the API logs
+make k8s-down           # tear the stack down (removes the petstore namespace)
 ```
 
-**Ingress.** An nginx Ingress (TLS, host `petstore.local`, re-encrypting to the HTTPS backend) is
-also applied. On Linux, add `petstore.local` to `/etc/hosts` pointing at `minikube ip` and
-`curl -k https://petstore.local/healthz`. On macOS with the Docker driver the node IP isn't routable
-from the host, so reach the ingress with `minikube tunnel` (separate terminal, needs sudo) or simply
-use the `kubectl port-forward` command above — it is the supported default.
+> **Updating after a code change** — you do **not** need to re-run `make k8s-up` (it rebuilds both
+> images and re-rolls everything). Use the targeted `make k8s-redeploy-api` / `make k8s-redeploy-web`
+> above; they rebuild just that one image and restart only its deployment. Postgres/Redis/MinIO and your
+> data are untouched. (`make k8s-up` is also safe to re-run — it's idempotent — just slower.)
+
+**Ingress.** An nginx Ingress (TLS, host `petstore.local`) terminates TLS and routes to the web
+gateway, which serves the storefront and proxies `/graphql` + `/pictures` to the API — so the whole
+system is same-origin. On Linux, add `petstore.local` to `/etc/hosts` pointing at `minikube ip` and
+browse `https://petstore.local`. On macOS with the Docker driver the node IP isn't routable from the
+host, so reach the ingress with `minikube tunnel` (separate terminal, needs sudo) — or use the
+`kubectl port-forward svc/petstore-web 8080:80` command above, which is the supported default.
 
 ---
 
@@ -166,6 +196,7 @@ use the `kubectl port-forward` command above — it is the supported default.
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Layering, request lifecycle, concurrency & race-condition strategy |
 | [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Entity-relationship diagram, tables, indexes, what's encrypted |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Authentication, store isolation, encryption, hardening, TLS |
+| [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | The <2s / 1k-user target: how it's met and how to reproduce the k6 load test (`make load-test`) |
 | [`docs/API.md`](docs/API.md) | GraphQL operations reference — populated as each operation is implemented |
 | [`docs/adr/`](docs/adr/) | Architecture Decision Records (the "why" behind key choices) |
 | [`docs/challenge.md`](docs/challenge.md) | The original challenge brief |

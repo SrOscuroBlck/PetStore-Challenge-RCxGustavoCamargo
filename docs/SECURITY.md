@@ -15,6 +15,17 @@ All endpoints require **HTTP Basic Authentication** over TLS, as mandated by the
 
 Credentials and decrypted PII are never logged.
 
+### Credential cache
+
+bcrypt is deliberately expensive, and Basic auth presents credentials on **every** request — verifying
+each one from scratch caps throughput far below the 1k-concurrent-user target (see
+[`PERFORMANCE.md`](PERFORMANCE.md)). A **successful** authentication is therefore memoized in memory for
+a short TTL (60 s), keyed by a SHA-256 hash of the credential (never the plaintext password). Security
+properties: only a caller presenting the correct password can compute a key that hits the cache, so it
+is not a bypass; failures are never cached; the cache holds the resolved identity, not the password; and
+a revoked or changed credential keeps working for at most the TTL (acceptable here — there is no
+password-change flow, and the window is bounded and short).
+
 ---
 
 ## 2. Authorization
@@ -57,6 +68,13 @@ TLS terminates at the API (or ingress) for every connection. Local development u
 
 **Why a blind index:** login needs an exact-match lookup by email, but AES-GCM is non-deterministic (a fresh nonce each time) so the ciphertext can't be searched. Storing an HMAC of the normalized email gives a deterministic, unique, indexable value that reveals nothing without the key — the system can find the account without ever storing the email in the clear. Keys come from configuration/secrets (`PII_ENCRYPTION_KEY`), never the codebase.
 
+**Scope of "at rest":** encryption at rest is applied at the **application layer** to the sensitive
+fields above (and one-way hashing to passwords) — these are the values that are confidential if the
+database is read directly. The Postgres data volume itself is not separately disk-encrypted in the local
+Minikube setup; in a real deployment that is provided by the storage layer (encrypted EBS/PD/volume),
+which is an infrastructure concern orthogonal to the application. The sensitive columns are protected
+regardless of the underlying volume.
+
 ---
 
 ## 4. Input validation & injection
@@ -76,7 +94,7 @@ TLS terminates at the API (or ingress) for every connection. Local development u
 | Deeply nested / abusive queries | Query depth and complexity limits. |
 | Oversized uploads | Maximum upload size enforced on the picture mutation. |
 | Error detail leakage | Resolvers return stable error codes + human messages; internal errors and stack details are never exposed (see [`API.md`](API.md#error-codes)). |
-| Batching abuse / N+1 | List queries are keyset-paginated with a bounded page size and a complexity cap; the only per-row resolver (`pictureUrl`) signs a URL offline with no database access, so a page of pets triggers no per-row queries. |
+| Batching abuse / N+1 | List queries are keyset-paginated with a bounded page size and a complexity cap; the only per-row resolver (`pictureUrl`) builds a static `/pictures/{key}` path from the stored object key with no database access, so a page of pets triggers no per-row queries. |
 
 ---
 

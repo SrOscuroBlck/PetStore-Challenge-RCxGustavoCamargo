@@ -1,0 +1,8 @@
+# Customer-only. Buys every cart pet atomically (all-or-nothing).
+# On UNAVAILABLE the error message names every pet no longer available.
+mutation Checkout($petIds: [ID!]!) {
+  checkout(petIds: $petIds) {
+    id
+    status
+  }
+}
