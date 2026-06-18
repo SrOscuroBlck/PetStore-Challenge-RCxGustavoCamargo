@@ -9,9 +9,9 @@ export function CatalogSkeleton({ count = 8 }: { count?: number }) {
       aria-hidden="true"
     >
       {Array.from({ length: count }).map((_, i) => (
-        <li key={i} className="overflow-hidden rounded border border-border bg-card">
+        <li key={i} className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
           <Skeleton className="aspect-[4/3] w-full rounded-none" />
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-5">
             <Skeleton className="h-5 w-2/3" />
             <Skeleton className="h-4 w-1/4" />
             <Skeleton className="h-4 w-full" />

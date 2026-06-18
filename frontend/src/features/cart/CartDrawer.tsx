@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Button } from '@/components/ui/Button';
+import { Paw } from '@/components/brand/Paw';
 import { useCart } from './useCart';
 import { useAuth } from '@/features/auth/useAuth';
 import { useCheckout } from '@/features/purchase/useCheckout';
@@ -39,9 +40,11 @@ export function CartDrawer({ refetch }: CartDrawerProps) {
     >
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" />
-        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-bg shadow-xl focus:outline-none">
-          <div className="flex items-center justify-between border-b border-border bg-ink px-5 py-4 text-ink-fg">
-            <Dialog.Title className="font-display text-lg font-bold">Your cart</Dialog.Title>
+        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col overflow-hidden rounded-l-2xl bg-bg shadow-xl focus:outline-none">
+          <div className="flex items-center justify-between bg-ink px-5 py-4 text-ink-fg">
+            <Dialog.Title className="flex items-center gap-2 font-display text-lg font-bold">
+              <Paw className="h-5 w-5 text-primary" /> Your cart
+            </Dialog.Title>
             <Dialog.Close
               aria-label="Close cart"
               className="rounded-sm p-1 transition-colors hover:bg-white/10"
@@ -64,7 +67,10 @@ export function CartDrawer({ refetch }: CartDrawerProps) {
           </Dialog.Description>
 
           {count === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+              <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Paw className="h-9 w-9 text-primary/60" />
+              </span>
               <p className="font-display text-lg font-semibold">Your cart is empty</p>
               <p className="text-sm text-muted">Add a pet from the catalog to get started.</p>
             </div>

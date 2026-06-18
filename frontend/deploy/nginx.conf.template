@@ -11,6 +11,14 @@ map $http_authorization $forwarded_authorization {
     default $http_authorization;
 }
 
+# Reuse upstream TLS connections to the API instead of a fresh handshake per
+# request — at 1k concurrent browsers the per-request handshake dominates gateway
+# CPU and latency (see docs/PERFORMANCE.md).
+upstream api {
+    server petstore-api:8443;
+    keepalive 64;
+}
+
 server {
     listen 80;
     server_name _;
@@ -24,8 +32,11 @@ server {
 
     # GraphQL — re-encrypt to the API's self-signed TLS, injecting/forwarding auth.
     location = /graphql {
-        proxy_pass https://petstore-api:8443/graphql;
+        proxy_pass https://api/graphql;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
         proxy_ssl_server_name on;
+        proxy_ssl_name petstore-api;
         proxy_ssl_verify off;
         proxy_set_header Host $host;
         proxy_set_header Authorization $forwarded_authorization;
@@ -33,8 +44,11 @@ server {
 
     # Pet pictures are public catalog content — proxied without auth.
     location /pictures/ {
-        proxy_pass https://petstore-api:8443/pictures/;
+        proxy_pass https://api/pictures/;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
         proxy_ssl_server_name on;
+        proxy_ssl_name petstore-api;
         proxy_ssl_verify off;
         proxy_set_header Host $host;
     }

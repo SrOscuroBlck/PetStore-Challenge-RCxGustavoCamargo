@@ -16,7 +16,7 @@ export function CartLineItem({ item, onRemove }: CartLineItemProps) {
         width={56}
         height={56}
         loading="lazy"
-        className="h-14 w-14 shrink-0 rounded bg-primary/10 object-cover"
+        className="h-14 w-14 shrink-0 rounded-xl bg-primary/10 object-cover"
       />
       <div className="min-w-0 flex-1">
         <p className="truncate font-display font-semibold">{item.name}</p>

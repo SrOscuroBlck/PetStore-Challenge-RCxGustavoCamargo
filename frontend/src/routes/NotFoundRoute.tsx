@@ -10,7 +10,7 @@ export function NotFoundRoute() {
       <p className="max-w-sm text-muted">The page you’re looking for doesn’t exist or has moved.</p>
       <Link
         to="/"
-        className="mt-2 rounded-sm bg-primary px-5 py-2.5 font-display text-sm font-semibold uppercase tracking-wide text-primary-fg transition-colors hover:bg-primary-strong"
+        className="mt-2 rounded-full bg-primary px-7 py-3 font-display text-sm font-semibold tracking-wide text-primary-fg shadow-soft transition-all hover:bg-primary-strong hover:shadow-lift"
       >
         Go home
       </Link>

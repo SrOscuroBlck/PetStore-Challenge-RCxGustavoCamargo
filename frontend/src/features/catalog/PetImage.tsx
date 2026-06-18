@@ -1,28 +1,30 @@
 import { useState } from 'react';
 import { cn } from '@/lib/cn';
+import { Paw } from '@/components/brand/Paw';
 
 interface PetImageProps {
   src: string;
   alt: string;
+  /** Tailwind background classes for the placeholder/loading tint (e.g. a species tile). */
+  tint?: string;
+  /** Icon color class for the placeholder paw. */
+  iconClassName?: string;
   className?: string;
 }
 
 /**
  * Pet photo from the API's same-origin /pictures path. Aspect-boxed (no layout shift),
- * lazy-loaded; on load failure (e.g. 404 expired key) shows a branded placeholder, never a
+ * lazy-loaded; on load failure (e.g. 404 expired key) shows a friendly paw placeholder, never a
  * broken-image glyph. The pet name stays announced via the placeholder's aria-label.
  */
-export function PetImage({ src, alt, className }: PetImageProps) {
+export function PetImage({ src, alt, tint, iconClassName, className }: PetImageProps) {
   const [failed, setFailed] = useState(false);
 
   return (
-    <div className={cn('relative aspect-[4/3] overflow-hidden bg-primary/10', className)}>
+    <div className={cn('relative aspect-[4/3] overflow-hidden', tint ?? 'bg-primary/10', className)}>
       {failed ? (
         <div role="img" aria-label={alt} className="flex h-full w-full items-center justify-center">
-          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-12 w-12 text-primary/40">
-            <path fill="currentColor" d="M2 2h7l-3.5 10L9 22H2l3.5-10z" />
-            <path fill="currentColor" opacity="0.65" d="M13 2h7l-3.5 10L20 22h-7l3.5-10z" />
-          </svg>
+          <Paw className={cn('h-14 w-14', iconClassName ?? 'text-primary/40')} />
         </div>
       ) : (
         <img

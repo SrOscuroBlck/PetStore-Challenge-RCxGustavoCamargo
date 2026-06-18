@@ -1,51 +1,63 @@
-/* Design tokens — Robotic Crew identity fused with pet-commerce warmth (see docs/DESIGN.md).
-   Colors are space-separated RGB channels so Tailwind can apply opacity.
+/* Design tokens — Robotic Crew's orange identity carried into a warm, friendly pet-store
+   storefront (see docs/DESIGN.md). Colors are space-separated RGB channels so Tailwind can
+   apply opacity.
 
    Accessibility rule (encoded here):
    - `primary` (vivid brand orange) is for FILLS, BORDERS, ICONS, and LARGE display text only.
    - `accent` is the AA-safe orange for orange-colored TEXT at body/label sizes on the page.
    - `primary-fg` (ink) is the text color ON an orange fill — dark-on-orange clears AA (~7:1). */
 :root {
-  /* Surfaces — warm cream neutrals (petstore warmth, not clinical gray) */
-  --color-bg: 251 248 244; /* #FBF8F4 warm page  */
+  /* Surfaces — warm cream neutrals (pet-store warmth, not clinical gray) */
+  --color-bg: 252 247 240; /* #FCF7F0 warm page  */
   --color-card: 255 255 255; /* cards/surfaces     */
-  --color-border: 233 227 220; /* #E9E3DC warm hairline */
-  --color-fg: 22 33 42; /* charcoal body text */
-  --color-muted: 107 100 94; /* #6B645E warm gray  */
+  --color-border: 237 229 219; /* #EDE5DB warm hairline */
+  --color-fg: 38 33 30; /* warm near-black body text */
+  --color-muted: 117 107 99; /* #756B63 warm gray  */
 
   /* Dark chrome (header/footer/feature bands) — same in both themes */
-  --color-ink: 22 33 42; /* RC navy/charcoal */
-  --color-ink-fg: 237 242 245; /* text on ink      */
+  --color-ink: 28 35 43; /* RC navy/charcoal */
+  --color-ink-fg: 246 243 238; /* warm text on ink */
 
   /* Brand orange */
   --color-primary: 242 101 34; /* #F26522 — fills/borders/large text   */
   --color-primary-strong: 217 85 26; /* #D9551A — hover/pressed fills        */
-  --color-primary-fg: 22 33 42; /* ink text on an orange fill (AA ~7:1) */
+  --color-primary-fg: 41 22 8; /* deep-brown text on an orange fill (AA) */
   --color-accent: 194 65 12; /* #C2410C — AA orange TEXT on light    */
+
+  /* Playful, friendly species accents (soft tints; used for tiles/placeholders/badges) */
+  --color-cat: 245 158 66; /* warm amber  */
+  --color-dog: 79 134 198; /* soft blue   */
+  --color-frog: 67 160 110; /* leafy green */
 
   /* Status */
   --color-danger: 198 40 28; /* AA-capable on light */
   --color-success: 22 121 67;
 
-  /* Shape */
-  --radius: 0.5rem;
-  --chamfer: 14px;
+  /* Shape — rounded + friendly (no angular chamfer) */
+  --radius: 1rem;
+
+  /* Paw-print silhouette (matches <Paw />) for CSS mask bullets. */
+  --paw-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Cellipse%20cx='20'%20cy='22'%20rx='7'%20ry='9'/%3E%3Cellipse%20cx='44'%20cy='22'%20rx='7'%20ry='9'/%3E%3Cellipse%20cx='10'%20cy='38'%20rx='6.5'%20ry='8'/%3E%3Cellipse%20cx='54'%20cy='38'%20rx='6.5'%20ry='8'/%3E%3Cpath%20d='M32%2034c8.5%200%2015%206.2%2015%2013.4%200%205.2-4%208.6-9.4%208.6-2.6%200-4-1.1-5.6-1.1s-3%201.1-5.6%201.1C15%2056%2011%2052.6%2011%2047.4%2011%2040.2%2023.5%2034%2032%2034Z'/%3E%3C/svg%3E");
 }
 
 .dark {
-  --color-bg: 14 23 30; /* #0E171E */
-  --color-card: 22 33 42; /* #16212A */
-  --color-border: 42 55 66; /* #2A3742 */
-  --color-fg: 231 236 239;
-  --color-muted: 149 163 172;
+  --color-bg: 18 22 28; /* warm-leaning dark page */
+  --color-card: 28 34 42; /* #1C222A */
+  --color-border: 46 54 64; /* #2E3640 */
+  --color-fg: 238 235 230;
+  --color-muted: 162 158 152;
 
-  --color-ink: 11 18 24; /* slightly deeper than cards */
-  --color-ink-fg: 237 242 245;
+  --color-ink: 13 17 22; /* slightly deeper than cards */
+  --color-ink-fg: 246 243 238;
 
   --color-primary: 242 101 34;
   --color-primary-strong: 255 122 56; /* lighten on dark */
-  --color-primary-fg: 22 33 42;
-  --color-accent: 251 138 76; /* bright orange text reads well on dark */
+  --color-primary-fg: 41 22 8;
+  --color-accent: 251 146 86; /* bright orange text reads well on dark */
+
+  --color-cat: 245 170 90;
+  --color-dog: 116 165 220;
+  --color-frog: 96 188 138;
 
   --color-danger: 248 113 113;
   --color-success: 74 222 128;

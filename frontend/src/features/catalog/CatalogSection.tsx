@@ -22,9 +22,12 @@ export function CatalogSection({ storeId }: CatalogSectionProps) {
   );
 
   return (
-    <section aria-labelledby="catalog-heading" className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
+    <section
+      aria-labelledby="catalog-heading"
+      className="mx-auto w-full max-w-6xl px-4 pb-20 pt-14 sm:px-6"
+    >
       <p className="eyebrow">Available now</p>
-      <h2 id="catalog-heading" className="rule-tab mt-2 text-2xl font-bold text-primary">
+      <h2 id="catalog-heading" className="rule-soft mt-2 text-3xl font-bold text-primary">
         Meet the pets
       </h2>
 

@@ -51,7 +51,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               if (!open) remove(toast.id);
             }}
             className={cn(
-              'relative rounded border-l-4 bg-card p-4 pr-8 text-sm text-fg shadow-lg',
+              'relative rounded-xl border-l-4 bg-card p-4 pr-8 text-sm text-fg shadow-soft',
               'data-[state=open]:animate-in data-[state=closed]:animate-out',
               variantStyles[toast.variant],
             )}

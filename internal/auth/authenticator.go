@@ -5,12 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 
 	"roboticCrewChallenge/internal/domain"
 	"roboticCrewChallenge/internal/platform/crypto"
 )
+
+// credentialCacheTTL bounds how long a verified credential is trusted without
+// re-running bcrypt. Short enough that a revoked credential stops working
+// promptly, long enough that a burst of requests from one principal pays the
+// bcrypt cost once rather than per request.
+const credentialCacheTTL = 60 * time.Second
 
 type merchantLookup interface {
 	GetByEmail(ctx context.Context, email string) (domain.Merchant, error)
@@ -28,20 +35,44 @@ type Authenticator struct {
 	merchants merchantLookup
 	customers customerLookup
 	stores    storeLookup
+	cache     *credentialCache
 }
 
 func NewAuthenticator(merchants merchantLookup, customers customerLookup, stores storeLookup) *Authenticator {
-	return &Authenticator{merchants: merchants, customers: customers, stores: stores}
+	return &Authenticator{
+		merchants: merchants,
+		customers: customers,
+		stores:    stores,
+		cache:     newCredentialCache(credentialCacheTTL),
+	}
 }
 
-// Authenticate resolves email+password to an Identity. Merchants take precedence
+// Authenticate resolves email+password to an Identity, serving a recent success
+// from the credential cache to avoid re-running bcrypt on every request. Only
+// successful resolutions are cached; failures always pay the full cost.
+func (a *Authenticator) Authenticate(ctx context.Context, email, password string) (Identity, error) {
+	key := credentialKey(email, password)
+	if identity, ok := a.cache.get(key); ok {
+		return identity, nil
+	}
+
+	identity, err := a.resolve(ctx, email, password)
+	if err != nil {
+		return Identity{}, err
+	}
+
+	a.cache.put(key, identity)
+	return identity, nil
+}
+
+// resolve performs the authoritative credential check. Merchants take precedence
 // over customers when an email exists in both tables, which are assumed disjoint.
 // Every credential failure collapses to ErrInvalidCredentials so callers cannot
 // tell an unknown email from a wrong password; an unknown email still pays a
 // bcrypt comparison (see equalizeTiming) so it is not distinguishable by the
 // dominant timing cost. Infrastructure failures bubble up distinct from
 // ErrInvalidCredentials so they are not mistaken for a 401.
-func (a *Authenticator) Authenticate(ctx context.Context, email, password string) (Identity, error) {
+func (a *Authenticator) resolve(ctx context.Context, email, password string) (Identity, error) {
 	merchant, err := a.merchants.GetByEmail(ctx, email)
 	switch {
 	case err == nil:

@@ -168,9 +168,17 @@ an `$picture: Upload!` variable, then use Altair's **Add file** control (under V
 to that variable.
 
 ```bash
-make logs        # tail the API logs
-make k8s-down    # tear the stack down (removes the petstore namespace)
+make load-test          # prove the <2s / 1k-user target (frontend + backend): in-cluster k6 load test (see docs/PERFORMANCE.md)
+make k8s-redeploy-api    # after a backend code change: rebuild only the API image + restart it (no full k8s-up)
+make k8s-redeploy-web    # after a frontend change: rebuild only the web image + restart it
+make logs               # tail the API logs
+make k8s-down           # tear the stack down (removes the petstore namespace)
 ```
+
+> **Updating after a code change** — you do **not** need to re-run `make k8s-up` (it rebuilds both
+> images and re-rolls everything). Use the targeted `make k8s-redeploy-api` / `make k8s-redeploy-web`
+> above; they rebuild just that one image and restart only its deployment. Postgres/Redis/MinIO and your
+> data are untouched. (`make k8s-up` is also safe to re-run — it's idempotent — just slower.)
 
 **Ingress.** An nginx Ingress (TLS, host `petstore.local`) terminates TLS and routes to the web
 gateway, which serves the storefront and proxies `/graphql` + `/pictures` to the API — so the whole
@@ -188,6 +196,7 @@ host, so reach the ingress with `minikube tunnel` (separate terminal, needs sudo
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Layering, request lifecycle, concurrency & race-condition strategy |
 | [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Entity-relationship diagram, tables, indexes, what's encrypted |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Authentication, store isolation, encryption, hardening, TLS |
+| [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | The <2s / 1k-user target: how it's met and how to reproduce the k6 load test (`make load-test`) |
 | [`docs/API.md`](docs/API.md) | GraphQL operations reference — populated as each operation is implemented |
 | [`docs/adr/`](docs/adr/) | Architecture Decision Records (the "why" behind key choices) |
 | [`docs/challenge.md`](docs/challenge.md) | The original challenge brief |

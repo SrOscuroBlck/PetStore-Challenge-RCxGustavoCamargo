@@ -48,9 +48,12 @@ export function AppShell() {
       <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 outline-none">
         <Outlet />
       </main>
-      <footer className="border-t border-border bg-card">
-        <div className="mx-auto w-full max-w-6xl px-4 py-6 text-sm text-muted sm:px-6">
-          Pets available for adoption — browse and take one home.
+      <footer className="bg-ink text-ink-fg">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <Logo />
+          <p className="text-sm text-ink-fg/70">
+            Pets ready for a new home — browse and take one home today.
+          </p>
         </div>
       </footer>
     </div>
